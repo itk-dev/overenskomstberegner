@@ -1,0 +1,11 @@
+.calculator-settings > .form-group {
+    padding: 0;
+
+    > legend {
+        display: none;
+    }
+
+    .form-control-label {
+        flex: none;
+    }
+}

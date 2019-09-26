@@ -1,0 +1,29 @@
+<?php
+
+$finder = PhpCsFixer\Finder::create()
+  ->in(__DIR__.'/{src,tests,bundles}')
+;
+
+$header =<<<'HEADER'
+This file is part of itk-dev/overenskomstberegner.
+
+(c) 2019 ITK Development
+
+This source file is subject to the MIT license.
+HEADER;
+
+return PhpCsFixer\Config::create()
+  ->setRiskyAllowed(true)
+  ->setRules([
+    '@Symfony' => true,
+    '@Symfony:risky' => true,
+    '@DoctrineAnnotation' => true,
+    'array_syntax' => ['syntax' => 'short'],
+    'header_comment' => ['header' => $header],
+    'list_syntax' => ['syntax' => 'short'],
+    'method_argument_space' => ['on_multiline' => 'ensure_fully_multiline'],
+    'strict_comparison' => true,
+    'method_chaining_indentation' => true,
+    'array_indentation' => true,
+  ])
+  ->setFinder($finder);

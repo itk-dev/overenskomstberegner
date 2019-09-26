@@ -1,0 +1,28 @@
+itk_dev_user_management:
+    site_url: '%site_url%'
+    site_name: '%site_name%'
+
+    # Template for mails sent to new users
+    user_created:
+        subject: '{{ site_name }} – new user created'
+
+        header: |
+            User created on {{ site_name }}
+
+        body: |
+            <p style='margin: 0;'>You have been created as user on {{ site_name }} with email address {{ user.email }}.</p>
+            <p style='margin: 0;'>To get started, you have to choose a password.</p>
+            <p style='margin: 0;'>After choosing a password, you can sign in with your email address ({{ user.email }}) and the choosen password.</p>
+
+        button:
+            text: 'Choose password'
+
+        footer: |
+            <p style="margin: 0;">Best regards,<br/> {{ site_name }}</p>
+
+    sender:
+        email: '%mailer_from_email%'
+        name: '%mailer_from_name%'
+
+    notify_user_on_create: false
+

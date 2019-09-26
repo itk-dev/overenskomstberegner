@@ -1,0 +1,26 @@
+easy_admin:
+    design:
+        assets:
+            css:
+                - 'build/easyadmin.css'
+            js:
+                - 'build/runtime.js'
+                - 'build/easyadmin.js'
+
+    entities:
+        Calculation:
+            class: App\Entity\Calculation
+            controller: App\Controller\CalculationController
+
+            list:
+                fields:
+                    - property: name
+                    - property: createdBy
+                    - property: createdAt
+                    - property: updatedAt
+
+            form:
+                fields:
+                    - property: name
+                    - property: calculator
+                      type: App\Form\Type\CalculatorType
