@@ -1,0 +1,20 @@
+.calculator-settings-forms {
+    > .form-group {
+        padding: 0;
+
+        > legend {
+            display: none;
+            // opacity: 0.5;
+        }
+
+        .form-control-label {
+            flex: none;
+        }
+    }
+
+    // .calculator-settings {
+    //     &::before {
+    //         content: attr(data-calculator);
+    //     }
+    // }
+}

@@ -23,10 +23,19 @@ class Argument
      *
      * @var string
      */
+    public $name;
+
+    /**
+     * @required
+     *
+     * @var string
+     */
     public $description;
 
     /**
      * @required
+     *
+     * @Enum({"string", "bool", "int", "date"})
      *
      * @var string
      */
@@ -47,6 +56,7 @@ class Argument
     public function asArray(): array
     {
         return [
+            'name' => $this->name,
             'description' => $this->description,
             'type' => $this->type,
             'required' => $this->required,

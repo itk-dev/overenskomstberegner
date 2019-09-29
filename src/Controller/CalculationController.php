@@ -14,9 +14,11 @@ use App\Annotation\Calculator;
 use App\Calculator\Manager;
 use App\Entity\Calculation;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\EasyAdminController;
+use RuntimeException;
 use Symfony\Component\Form\Extension\Core\Type\FormType;
-use Symfony\Component\Form\Extension\Core\Type\IntegerType;
-use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
 
 class CalculationController extends EasyAdminController
 {
@@ -30,109 +32,84 @@ class CalculationController extends EasyAdminController
 
     protected function createEntityFormBuilder($entity, $view)
     {
+        if (!$entity instanceof Calculation) {
+            throw new RuntimeException(sprintf('Invalid entity: %s', \get_class($entity)));
+        }
+
+        $data = $this->buildData($entity);
+
         $builder = parent::createEntityFormBuilder($entity, $view);
 
         $settingsBuilder = $builder->create('calculatorSettings', FormType::class, [
             'compound' => true,
             'attr' => [
-                'class' => 'calculator-settings',
+                'class' => 'calculator-settings-forms',
             ],
-        ]);
+            // We'll inject new fields into this form.
+            'allow_extra_fields' => true,
+        ])->addEventListener(FormEvents::PRE_SUBMIT, function (FormEvent $event) {
+            $data = $event->getData();
+            $form = $event->getForm();
+            $calculator = $this->request->request->get($form->getParent()->getName())['calculator'] ?? null;
+            $formName = $this->getFormName($calculator);
+            if (isset($data[$formName])) {
+                foreach ($form->getData() as $name => $value) {
+                    $form->remove($name);
+                }
+                $form->setData($this->manager->normalizeSettings($calculator, $data[$formName]));
+            }
+        });
         foreach ($this->manager->getCalculators() as $class => $calculator) {
-            $formName = str_replace('\\', '_', $class);
-            $bb = $settingsBuilder->create($formName, FormType::class, [
+            $formName = $this->getFormName($calculator);
+            $calculatorSettingsBuilder = $settingsBuilder->create($formName, FormType::class, [
                 'label' => $calculator['name'] ?? $class,
+                'attr' => [
+                    'class' => 'calculator-settings',
+                    'data-calculator' => $class,
+                ],
             ]);
-            $this->buildCalculatorForm($calculator, $bb);
-            $settingsBuilder->add($bb);
+            $this->buildCalculatorForm($calculator, $calculatorSettingsBuilder, $data[$formName]);
+            $settingsBuilder->add($calculatorSettingsBuilder);
         }
         $builder->add($settingsBuilder);
 
         return $builder;
     }
 
-    private function buildCalculatorForm(array $calculator, $builder)
+    private function getFormName($class)
+    {
+        if (isset($class['class'])) {
+            $class = $class['class'];
+        }
+
+        return str_replace('\\', '_', $class);
+    }
+
+    private function buildData(Calculation $calculation)
+    {
+        $data = [];
+        foreach ($this->manager->getCalculators() as $calculator) {
+            $formName = $this->getFormName($calculator);
+            $data[$formName] = $calculation->getCalculator() === $calculator['class'] ? $calculation->getCalculatorSettings() : [];
+        }
+
+        return $data;
+    }
+
+    private function buildCalculatorForm(array $calculator, FormBuilderInterface $builder, array $data)
     {
         foreach ($calculator['settings'] as $name => $info) {
             $builder->add(
-//                $this->getCalculatorSettingFormName($calculator, $name),
                 $name,
-                $this->getFormType($info['type']),
-                [
-                    'mapped' => false,
-                    'label' => $info['name'] ?? $name,
-                    'required' => $info['required'],
-                    'help' => $info['description'] ?? null,
-                    'attr' => [
-                        'data-calculator' => $calculator['class'],
-                    ],
-                ]
+                Calculator::getFormType($info),
+                Calculator::getFormOptions($info)
+                    + [
+                        'attr' => [
+                            'data-calculator' => $calculator['class'],
+                        ],
+                        'data' => $data[$name] ?? null,
+                    ]
             );
         }
-    }
-
-    private function getCalculatorSettingFormName($calculator, $name)
-    {
-        return $this->getCalculatorId($calculator).'-'.$name;
-    }
-
-    private function getCalculatorSettingName($calculator, $name)
-    {
-        $prefix = $this->getCalculatorId($calculator).'-';
-
-        return 0 === strpos($name, $prefix) ? substr($name, \strlen($prefix)) : null;
-    }
-
-    private function getCalculatorId($calculator)
-    {
-        if ($calculator instanceof Calculator) {
-            $calculator = \get_class($calculator);
-        }
-
-        if (\is_array($calculator) && isset($calculator['class'])) {
-            $calculator = $calculator['class'];
-        }
-
-        return md5($calculator);
-    }
-
-    private function getFormType(string $type)
-    {
-        switch ($type) {
-            case 'int':
-                return IntegerType::class;
-        }
-
-        return TextType::class;
-    }
-
-    protected function persistEntity($entity)
-    {
-        return parent::persistEntity($entity);
-    }
-
-    protected function updateEntity($entity)
-    {
-        $editForm = \func_num_args() > 1 ? func_get_arg(1) : null;
-
-        if ($entity instanceof Calculation) {
-            $calculator = $this->manager->getCalculator($entity->getCalculator());
-
-            $builder = $this->createFormBuilder();
-            $this->buildCalculatorForm($calculator['class'], $calculator['settings'], $builder);
-            $form = $builder->getForm();
-            $form->handleRequest($this->request);
-
-            $calculatorSettings = [];
-            $values = $this->request->request->get('calculation');
-            foreach ($values as $name => $value) {
-                if (null !== $name = $this->getCalculatorSettingName($calculator, $name)) {
-                    $calculatorSettings[$name] = $value;
-                }
-            }
-            $entity->setCalculatorSettings($calculatorSettings);
-        }
-
-        return parent::updateEntity($entity);
     }
 }

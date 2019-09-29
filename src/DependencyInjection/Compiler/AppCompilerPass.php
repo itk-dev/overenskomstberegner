@@ -17,6 +17,7 @@ use Doctrine\Common\Annotations\AnnotationReader;
 use Doctrine\Common\Annotations\AnnotationRegistry;
 use Doctrine\Common\Annotations\CachedReader;
 use Doctrine\Common\Cache\ArrayCache;
+use ReflectionClass;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
@@ -35,7 +36,8 @@ class AppCompilerPass implements CompilerPassInterface
             new ArrayCache()
         );
         foreach ($calculators as $class => &$metadata) {
-            $annotation = $reader->getClassAnnotation(new \ReflectionClass($class), Calculator::class);
+            /** @var Calculator $annotation */
+            $annotation = $reader->getClassAnnotation(new ReflectionClass($class), Calculator::class);
             if (null !== $annotation) {
                 $metadata = $annotation->asArray();
             }

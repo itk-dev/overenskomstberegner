@@ -10,6 +10,7 @@
 
 namespace App\Entity;
 
+use App\Validator\Constraints\ValidCalculatorSettings;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Blameable\Traits\BlameableEntity;
 use Gedmo\Mapping\Annotation as Gedmo;
@@ -46,6 +47,7 @@ class Calculation
 
     /**
      * @ORM\Column(type="json")
+     * @ValidCalculatorSettings(calculatorField="calculator")
      */
     private $calculatorSettings = [];
 

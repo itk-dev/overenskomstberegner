@@ -39,7 +39,7 @@ services:
       - ${PWD}/.docker/vhost.conf:/etc/nginx/conf.d/default.conf:ro
       - ./:/app:delegated
     labels:
-      - "traefik.http.routers.frontend.rule=Host(`${COMPOSE_PROJECT_NAME}.local.computer`)"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}.rule=Host(`${COMPOSE_PROJECT_NAME}.local.computer`)"
 
   memcached:
     image: 'memcached:latest'

@@ -2,10 +2,10 @@ easy_admin:
     design:
         assets:
             css:
-                - 'build/easyadmin.css'
+                - 'build/easy_admin.css'
             js:
                 - 'build/runtime.js'
-                - 'build/easyadmin.js'
+                - 'build/easy_admin.js'
 
     entities:
         Calculation:
@@ -13,6 +13,11 @@ easy_admin:
             controller: App\Controller\CalculationController
 
             list:
+                actions:
+                    - name: 'calculate_run'
+                      type: 'route'
+                      label: 'Calculate'
+
                 fields:
                     - property: name
                     - property: createdBy
@@ -24,3 +29,15 @@ easy_admin:
                     - property: name
                     - property: calculator
                       type: App\Form\Type\CalculatorType
+#                    - property: calculatorSettings
+#                      type: App\Form\Type\CalculatorSettingsType
+
+        User:
+            class: App\Entity\User
+
+            list:
+                fields:
+                    - property: username
+                    - property: createdBy
+                    - property: createdAt
+                    - property: updatedAt

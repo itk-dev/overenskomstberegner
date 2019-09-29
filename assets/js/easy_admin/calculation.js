@@ -1,12 +1,12 @@
-require('../../css/easyadmin/calculation.scss')
+require('../../css/easy_admin/calculation.scss')
 
-if (null !== document.querySelector('.easyadmin.edit-calculation')) {
+if (null !== document.querySelector('.easyadmin.new-calculation, .easyadmin.edit-calculation')) {
     const calculator = document.querySelector('[name="calculation[calculator]"]')
     const update = () => {
         const calculatorClass = $(calculator).val()
         $('[data-calculator]').each((index, el) => {
             const enable = $(el).data('calculator') === calculatorClass
-            $(el).closest('.form-group').toggle(enable)
+            $(el).toggle(enable)
             $(el).prop('disabled', !enable)
         })
     }
