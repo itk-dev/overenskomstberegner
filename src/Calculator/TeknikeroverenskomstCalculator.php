@@ -31,12 +31,35 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
  */
 class TeknikeroverenskomstCalculator extends AbstractCalculator
 {
+    protected $name = 'Overenskomst for teknikere';
+
     private $overarbejdeFra;
 
     private $overarbejdeTil;
 
     public function calculate(Spreadsheet $input, array $options): Spreadsheet
     {
-        // TODO: Implement calculate() method.
+        // 1. Read input and group by employee and sort by dates.
+        // 2. Calculate sums of TF.
+        // 3. Generate output: One line per TF per employee.
+
+        throw new \RuntimeException(__METHOD__.' not implemented!');
+    }
+
+    /**
+     * Calculate arbejdstimer.
+     *
+     * @Calculation(
+     *     overenskomsttekst="…",
+     *     excel_formula="=HVIS(ELLER(F3="Vagt";OG(F3="Sygdom";J3<>0));J3-I3;HVIS(ER.FEJL(LOPSLAG(F3;Normnedsættende;1;FALSK));0;LOPSLAG(C3;Meta!H:I;2;FALSK)/5/24))",
+     *     calculation="\frac{a}{b}",
+     *     placeholders={
+     *         "a": @Placeholder(name="The a value", description="Value of a", type="int"),
+     *         "b": @Placeholder(name="The a value", description="Value of a", type="int"),
+     *     }
+     * )
+     */
+    private function calculateArbejdstimer()
+    {
     }
 }

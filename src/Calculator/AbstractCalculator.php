@@ -33,6 +33,9 @@ abstract class AbstractCalculator
     public function __construct(array $metadata)
     {
         $this->metadata = $metadata;
+        if (null === $this->name) {
+            throw new \RuntimeException(sprintf('Property name must be set on class %s', static::class));
+        }
     }
 
     /**

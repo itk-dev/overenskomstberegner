@@ -10,6 +10,7 @@
 
 namespace App\Controller;
 
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use App\Annotation\Calculator;
 use App\Calculator\Manager;
 use App\Entity\Calculation;
@@ -28,6 +29,13 @@ class CalculationController extends EasyAdminController
     public function __construct(Manager $manager)
     {
         $this->manager = $manager;
+    }
+
+    public function runAction(): RedirectResponse
+    {
+        $id = $this->request->get('id');
+
+        return $this->redirectToRoute('calculate_run', ['id' => $id]);
     }
 
     protected function createEntityFormBuilder($entity, $view)

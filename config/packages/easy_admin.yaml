@@ -14,12 +14,12 @@ easy_admin:
 
             list:
                 actions:
-                    - name: 'calculate_run'
-                      type: 'route'
+                    - name: 'run'
                       label: 'Calculate'
 
                 fields:
                     - property: name
+                    - property: calculator
                     - property: createdBy
                     - property: createdAt
                     - property: updatedAt

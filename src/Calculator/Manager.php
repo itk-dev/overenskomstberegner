@@ -41,6 +41,12 @@ class Manager
         return $calculators[$calculator] ?? null;
     }
 
+    public function getFormulas(AbstractCalculator $calculator)
+    {
+        // Get @Formula annotations from calculator.
+        throw new \RuntimeException(__METHOD__.' not implemented!');
+    }
+
     /**
      * @param $calculatorClass
      * @param array $settings
