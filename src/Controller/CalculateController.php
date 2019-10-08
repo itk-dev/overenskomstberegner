@@ -45,7 +45,26 @@ class CalculateController extends AbstractController
     }
 
     /**
-     * @Route("/show/{id}", name="run")
+     * @Route("/show/{id}", name="show")
+     *
+     * @param Request     $request
+     * @param Calculation $calculation
+     *
+     * @return Response
+     */
+    public function show(Request $request, Calculation $calculation)
+    {
+        $calculator = $this->manager->createCalculator($calculation->getCalculator(), $calculation->getCalculatorSettings());
+        $formulas = $this->manager->getFormulas($calculator);
+
+        return $this->render('calculation/show.html.twig', [
+            'calculation' => $calculation,
+            'formulas' => $formulas,
+        ]);
+    }
+
+    /**
+     * @Route("/run/{id}", name="run")
      *
      * @param Request     $request
      * @param Calculation $calculation
@@ -107,6 +126,7 @@ class CalculateController extends AbstractController
 
                     return $response;
                 } catch (Exception $exception) {
+                    throw $exception;
                     $this->addFlash('danger', $exception->getMessage());
                 }
             } else {
@@ -114,7 +134,7 @@ class CalculateController extends AbstractController
             }
         }
 
-        return $this->render('calculation/show.html.twig', [
+        return $this->render('calculation/run.html.twig', [
             'calculation' => $calculation,
             'form' => $form->createView(),
             'result' => $result,

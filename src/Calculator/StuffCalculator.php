@@ -20,34 +20,49 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
  * @Calculator(
  *     name="Stuff",
  *     description="",
- *     settings={
- *         "min": @Setting(type="int"),
- *         "max": @Setting(type="int", required=false),
- *     },
- *     arguments={
- *         "start": @Argument(type="date"),
- *         "end": @Argument(type="date", required=false),
- *     }
  * )
  */
 class StuffCalculator extends AbstractCalculator
 {
-    /** @var int */
+    /**
+     * @Setting(type="int"),
+     *
+     * @var int */
     private $min;
 
-    /** @var int */
+    /**
+     * @Setting(type="int", required=false),
+     *
+     * @var int
+     */
     private $max;
 
-    /** @var DateTime */
+    /**
+     * @Argument(type="date"),
+     *
+     * @var DateTime
+     */
     private $start;
 
-    /** @var DateTime|null */
+    /**
+     * @Argument(type="date", required=false),
+     *
+     * @var DateTime|null
+     */
     private $end;
 
-    public function calculate(Spreadsheet $input, array $arguments): Spreadsheet
+    protected function load(Spreadsheet $input): void
     {
-        $this->validateAndApplySettings('arguments', $arguments);
+        // TODO: Implement load() method.
+    }
 
+    protected function doCalculate(): void
+    {
+        // TODO: Implement doCalculate() method.
+    }
+
+    protected function render(): Spreadsheet
+    {
         $result = new Spreadsheet();
         $sheet = $result->getActiveSheet();
         $sheet->setCellValueByColumnAndRow(1, 1, $this->start->format('Y-m-d'));

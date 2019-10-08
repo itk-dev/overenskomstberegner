@@ -8,12 +8,8 @@
  * This source file is subject to the MIT license.
  */
 
-namespace App\Annotation\Calculator;
+namespace App\Exception;
 
-/**
- * @Annotation
- * @Target("PROPERTY")
- */
-class Setting extends Argument
+abstract class RuntimeException extends \RuntimeException
 {
 }

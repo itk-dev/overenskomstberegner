@@ -10,8 +10,13 @@
 
 namespace App\Calculator;
 
+use App\Annotation\Calculation;
 use App\Annotation\Calculator;
 use App\Calculator\Exception\ValidationException;
+use Doctrine\Common\Annotations\AnnotationReader;
+use Doctrine\Common\Annotations\AnnotationRegistry;
+use Doctrine\Common\Annotations\CachedReader;
+use Doctrine\Common\Cache\ArrayCache;
 use PhpOffice\PhpSpreadsheet\Reader\Csv;
 use PhpOffice\PhpSpreadsheet\Reader\Xlsx;
 use RuntimeException;
@@ -43,8 +48,20 @@ class Manager
 
     public function getFormulas(AbstractCalculator $calculator)
     {
-        // Get @Formula annotations from calculator.
-        throw new \RuntimeException(__METHOD__.' not implemented!');
+        AnnotationRegistry::registerLoader('class_exists');
+        $reader = new CachedReader(
+            new AnnotationReader(),
+            new ArrayCache()
+        );
+
+        $class = new \ReflectionClass($calculator);
+        $calculations = array_filter(array_map(function (\ReflectionMethod $method) use ($reader) {
+            $annotation = $reader->getMethodAnnotation($method, Calculation::class);
+
+            return null !== $annotation ? [$method, $annotation] : null;
+        }, $class->getMethods()));
+
+        return $calculations;
     }
 
     /**

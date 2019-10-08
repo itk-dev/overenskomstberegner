@@ -10,8 +10,6 @@
 
 namespace App\Annotation;
 
-use App\Annotation\Calculator\Argument;
-use App\Annotation\Calculator\Setting;
 use DateTime;
 use InvalidArgumentException;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
@@ -39,31 +37,11 @@ class Calculator
      */
     public $description;
 
-    /**
-     * @required
-     *
-     * @var array
-     */
-    public $settings;
-
-    /**
-     * @required
-     *
-     * @var array
-     */
-    public $arguments;
-
     public function asArray(): array
     {
         return [
             'name' => $this->name,
             'description' => $this->description,
-            'settings' => array_map(static function (Setting $setting) {
-                return $setting->asArray();
-            }, $this->settings),
-            'arguments' => array_map(static function (Argument $argument) {
-                return $argument->asArray();
-            }, $this->arguments),
         ];
     }
 

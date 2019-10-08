@@ -14,6 +14,7 @@ easy_admin:
 
             list:
                 actions:
+                    - name: show
                     - name: 'run'
                       label: 'Calculate'
 

@@ -12,7 +12,9 @@ namespace App\Calculator;
 
 use App\Annotation\Calculator;
 use App\Calculator\Exception\InvalidArgumentException;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use ReflectionProperty;
 
 abstract class AbstractCalculator
@@ -28,7 +30,33 @@ abstract class AbstractCalculator
     /** @var array */
     protected $arguments;
 
-    abstract public function calculate(Spreadsheet $input, array $arguments): Spreadsheet;
+    public function calculate(Spreadsheet $input, array $arguments): Spreadsheet
+    {
+        $this->load($input);
+        $this->validateAndApplySettings('arguments', $arguments);
+        $this->doCalculate();
+
+        return $this->render();
+    }
+
+    /**
+     * Load data from spreadsheet.
+     *
+     * @param Spreadsheet $input
+     */
+    abstract protected function load(Spreadsheet $input): void;
+
+    /**
+     * Perform actual calculation.
+     */
+    abstract protected function doCalculate(): void;
+
+    /**
+     * Render calculation result in a spreadsheet.
+     *
+     * @return Spreadsheet
+     */
+    abstract protected function render(): Spreadsheet;
 
     public function __construct(array $metadata)
     {
@@ -66,7 +94,6 @@ abstract class AbstractCalculator
                 Calculator::requireValue($name, $settings);
             }
             Calculator::checkType($name, $setting['type'], $settings);
-            $settingName = $setting['name'] ?? $name;
             if (!property_exists($this, $name)) {
                 throw new InvalidArgumentException(sprintf(
                     'Property "%s" does not exist on %s.',
@@ -76,11 +103,39 @@ abstract class AbstractCalculator
             }
             $property = new ReflectionProperty($this, $name);
             $property->setAccessible(true);
-            if (\array_key_exists($settingName, $settings)) {
-                $property->setValue($this, $settings[$settingName]);
+            if (\array_key_exists($name, $settings)) {
+                $property->setValue($this, $settings[$name]);
             } elseif (isset($setting['default'])) {
                 $property->setValue($this, $setting['default']);
             }
+        }
+    }
+
+    protected function getExcelDate($value)
+    {
+        return $value ? Date::excelToDateTimeObject($value) : null;
+    }
+
+    protected function getExcelTime($value)
+    {
+        return $value ? Date::excelToDateTimeObject($value) : null;
+    }
+
+    protected function writeCells(Worksheet $spreadsheet, int $columnIndex, int $row, array $cells): void
+    {
+        foreach ($cells as $cell) {
+            $spreadsheet->setCellValueByColumnAndRow($columnIndex, $row, $cell);
+            ++$columnIndex;
+        }
+    }
+
+    protected function writeCell(Worksheet $spreadsheet, int $columnIndex, int $row, $value, $colSpan = 1): void
+    {
+        $cells = array_fill(0, $colSpan, 'null');
+        $cells[0] = $value;
+        $this->writeCells($spreadsheet, $columnIndex, $row, $cells);
+        if ($colSpan > 1) {
+            $spreadsheet->mergeCellsByColumnAndRow($columnIndex, $row, $columnIndex + $colSpan - 1, 1);
         }
     }
 }

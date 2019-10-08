@@ -35,13 +35,26 @@ class AppCompilerPass implements CompilerPassInterface
             new AnnotationReader(),
             new ArrayCache()
         );
+
         foreach ($calculators as $class => &$metadata) {
+            $reflectionClass = new ReflectionClass($class);
             /** @var Calculator $annotation */
-            $annotation = $reader->getClassAnnotation(new ReflectionClass($class), Calculator::class);
-            if (null !== $annotation) {
-                $metadata = $annotation->asArray();
+            $annotation = $reader->getClassAnnotation($reflectionClass, Calculator::class);
+            $properties = $reflectionClass->getProperties();
+            $metadata = [
+                'class' => $class,
+                'settings' => [],
+                'arguments' => [],
+            ];
+            $metadata += $annotation->asArray();
+
+            foreach ($properties as $property) {
+                if (null !== $annotation = $reader->getPropertyAnnotation($property, Calculator\Setting::class)) {
+                    $metadata['settings'][$property->getName()] = $annotation->asArray();
+                } elseif (null !== $annotation = $reader->getPropertyAnnotation($property, Calculator\Argument::class)) {
+                    $metadata['arguments'][$property->getName()] = $annotation->asArray();
+                }
             }
-            $metadata['class'] = $class;
         }
         unset($metadata);
 

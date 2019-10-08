@@ -14,7 +14,7 @@ use Doctrine\Common\Annotations\Annotation\Target;
 
 /**
  * @Annotation
- * @Target("ANNOTATION")
+ * @Target("PROPERTY")
  */
 class Argument
 {

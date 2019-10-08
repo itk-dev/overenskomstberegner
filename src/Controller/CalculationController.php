@@ -31,6 +31,13 @@ class CalculationController extends EasyAdminController
         $this->manager = $manager;
     }
 
+    public function showAction(): RedirectResponse
+    {
+        $id = $this->request->get('id');
+
+        return $this->redirectToRoute('calculate_show', ['id' => $id]);
+    }
+
     public function runAction(): RedirectResponse
     {
         $id = $this->request->get('id');

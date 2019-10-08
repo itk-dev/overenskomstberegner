@@ -1,0 +1,27 @@
+{% extends '@EasyAdmin/default/layout.html.twig' %}
+
+{% block content_title calculation.name %}
+
+{% block main %}
+    {% form_theme form '@EasyAdmin/form/bootstrap_4.html.twig' %}
+    {{ form_start(form) }}
+        {% for ctrl in form|filter((_, name) => name != 'preview' and name != 'submit') -%}
+            {{ form_row(ctrl) }}
+        {% endfor %}
+
+        <div class="form-actions">
+            {{ form_widget(form.submit) }}
+            {{ form_widget(form.preview) }}
+        </div>
+    {{ form_end(form) }}
+
+    <fieldset>
+        <legend>{{ 'Preview'|trans }}</legend>
+        <iframe name="preview" src="about:blank"></iframe>
+    </fieldset>
+{% endblock %}
+
+{% block head_stylesheets %}
+    {{ parent() }}
+    {{ encore_entry_link_tags('calculate') }}
+{% endblock %}

@@ -3,25 +3,45 @@
 {% block content_title calculation.name %}
 
 {% block main %}
-    {% form_theme form '@EasyAdmin/form/bootstrap_4.html.twig' %}
-    {{ form_start(form) }}
-        {% for ctrl in form|filter((_, name) => name != 'preview' and name != 'submit') -%}
-            {{ form_row(ctrl) }}
-        {% endfor %}
+{{ dump() }}
 
-        <div class="form-actions">
-            {{ form_widget(form.submit) }}
-            {{ form_widget(form.preview) }}
-        </div>
-    {{ form_end(form) }}
+\[\frac{a}{b}\]
 
-    <fieldset>
-        <legend>{{ 'Preview'|trans }}</legend>
-        <iframe name="preview" src="about:blank"></iframe>
-    </fieldset>
+\[
+\sqrt{87}
+\]
 {% endblock %}
 
 {% block head_stylesheets %}
     {{ parent() }}
     {{ encore_entry_link_tags('calculate') }}
 {% endblock %}
+
+{% block head_javascript %}
+    {{ parent() }}
+<script>
+MathJax = {
+  loader: {
+        load: ['input/tex', 'output/chtml']
+    },
+  tex: {
+    packages: ['base', 'require']
+  }
+};
+</script>
+<script type="text/javascript" id="MathJax-script" async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3.0.0/es5/startup.js">
+</script>
+
+{#
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+#}
+{% endblock %}
+
+{#
+{% block body_javascript %}
+    {{ parent() }}
+    {{ encore_entry_script_tags('calculate') }}
+{% endblock %}
+#}
