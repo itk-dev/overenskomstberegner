@@ -114,15 +114,16 @@ class CalculationController extends EasyAdminController
     private function buildCalculatorForm(array $calculator, FormBuilderInterface $builder, array $data)
     {
         foreach ($calculator['settings'] as $name => $info) {
+            $type = Calculator::getFormType($info);
             $builder->add(
                 $name,
-                Calculator::getFormType($info),
+                $type,
                 Calculator::getFormOptions($info)
                     + [
                         'attr' => [
                             'data-calculator' => $calculator['class'],
                         ],
-                        'data' => $data[$name] ?? null,
+                        'data' => Calculator::getFormData($data[$name] ?? null, $type),
                     ]
             );
         }

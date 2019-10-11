@@ -35,7 +35,7 @@ class Argument
     /**
      * @required
      *
-     * @Enum({"string", "bool", "int", "date"})
+     * @Enum({"string", "bool", "int", "date", "time", "text"})
      *
      * @var string
      */

@@ -12,7 +12,9 @@ namespace App\Calculator;
 
 use App\Annotation\Calculator;
 use App\Calculator\Exception\InvalidArgumentException;
-use PhpOffice\PhpSpreadsheet\Shared\Date;
+use DateTimeImmutable;
+use DateTimeInterface;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use ReflectionProperty;
@@ -111,14 +113,48 @@ abstract class AbstractCalculator
         }
     }
 
+    /**
+     * @param $value
+     *
+     * @return DateTimeImmutable|null
+     *
+     * @throws \Exception
+     */
     protected function getExcelDate($value)
     {
-        return $value ? Date::excelToDateTimeObject($value) : null;
+        return $value ? Date::createFromDateTime(DateTimeImmutable::createFromMutable(ExcelDate::excelToDateTimeObject($value))) : null;
     }
 
-    protected function getExcelTime($value)
+    protected function formatExcelDate(float $excelTimestamp = null)
     {
-        return $value ? Date::excelToDateTimeObject($value) : null;
+        return null !== $excelTimestamp ? ExcelDate::excelToDateTimeObject($excelTimestamp)->format('Y-m-d') : '';
+    }
+
+    protected function formatExcelDateTime(float $excelTimestamp = null)
+    {
+        return null !== $excelTimestamp ? ExcelDate::excelToDateTimeObject($excelTimestamp)->format('Y-m-d H:i:s') : '';
+    }
+
+    protected function formatExcelTime(float $excelTimestamp = null)
+    {
+        return null !== $excelTimestamp ? ExcelDate::excelToDateTimeObject($excelTimestamp)->format('H:i') : '';
+    }
+
+    protected function dateTime2Excel(DateTimeInterface $dateTime)
+    {
+        return ExcelDate::PHPToExcel($dateTime);
+    }
+
+    protected function time2Excel(DateTimeInterface $date)
+    {
+        return ExcelDate::formattedPHPToExcel(
+            1900,
+            1,
+            0,
+            (int) $date->format('H'),
+            (int) $date->format('i'),
+            (int) $date->format('s')
+        );
     }
 
     protected function writeCells(Worksheet $spreadsheet, int $columnIndex, int $row, array $cells): void

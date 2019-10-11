@@ -77,6 +77,8 @@ class Manager
             throw new RuntimeException(sprintf('Invalid calculator: %s', $calculatorClass));
         }
 
+        $settings = $this->normalizeSettings($calculatorClass, $settings);
+
         return (new $calculatorClass($calculator))->setSettings($settings);
     }
 

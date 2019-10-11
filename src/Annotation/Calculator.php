@@ -10,12 +10,17 @@
 
 namespace App\Annotation;
 
+use App\Calculator\Exception\InvalidTypeException;
 use DateTime;
+use DateTimeZone;
 use InvalidArgumentException;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\DateTimeType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
+use Symfony\Component\Form\Extension\Core\Type\TextAreaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\Form\Extension\Core\Type\TimeType;
 
 /**
  * @Annotation
@@ -60,12 +65,18 @@ class Calculator
                         throw new InvalidTypeException(sprintf('Must be a date: %s', $name));
                     }
                     break;
+                case 'time':
+                    if (!static::isDate($value)) {
+                        throw new InvalidTypeException(sprintf('Must be a time: %s', $name));
+                    }
+                    break;
                 case 'int':
                     if (!static::isInt($value)) {
                         throw new InvalidTypeException(sprintf('Must be an int: %s', $name));
                     }
                     break;
                 case 'string':
+                case 'text':
                     if (!static::isString($value)) {
                         throw new InvalidTypeException(sprintf('Must be a string: %s', $name));
                     }
@@ -88,10 +99,12 @@ class Calculator
                 case 'bool':
                     return (bool) $value;
                 case 'date':
-                    return $value instanceof DateTime ? $value : new DateTime($value);
+                case 'time':
+                    return self::createDateTime($value);
                 case 'int':
                     return (int) $value;
                 case 'string':
+                case 'text':
                     return (string) $value;
                 default:
                     throw new InvalidTypeException(sprintf('Unknown type: %s', $typeName));
@@ -141,8 +154,12 @@ class Calculator
                 return CheckboxType::class;
             case 'date':
                 return DateType::class;
+            case 'time':
+                return TimeType::class;
             case 'int':
                 return IntegerType::class;
+            case 'text':
+                return TextAreaType::class;
         }
 
         return TextType::class;
@@ -155,5 +172,34 @@ class Calculator
             'required' => $info['required'],
             'help' => $info['description'] ?? null,
         ];
+    }
+
+    public static function getFormData($value, $type)
+    {
+        if (isset($type['type'])) {
+            $type = static::getFormType($type);
+        }
+
+        switch ($type) {
+            case DateType::class:
+            case DateTimeType::class:
+            case TimeType::class:
+                return self::createDateTime($value);
+        }
+
+        return $value;
+    }
+
+    private static function createDateTime($value)
+    {
+        if ($value instanceof DateTime) {
+            return $value;
+        } elseif (isset($value['hour'], $value['minute'])) {
+            return (new DateTime('@0'))->setTime((int) $value['hour'], (int) $value['minute']);
+        } elseif (isset($value['date'], $value['timezone'])) {
+            return new DateTime($value['date'], new DateTimeZone($value['timezone']));
+        }
+
+        return null;
     }
 }
