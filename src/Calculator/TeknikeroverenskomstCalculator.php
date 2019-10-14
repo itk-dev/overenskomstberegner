@@ -19,6 +19,13 @@ use DateTime;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 
 /**
+ * Note on date calculations: All date (and time) calculations in this class
+ * are done using Excel timestamps, i.e. floating point numbers with the
+ * integer part specifying the number of days since 1900-01-00 (yes, 00) and
+ * the decimal part specifying the time of day. See
+ * http://www.cpearson.com/excel/datetime.htm and similar resources for
+ * details.
+ *
  * @see http://excelformulabeautifier.com/
  *
  * @Calculator(
@@ -156,6 +163,30 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
     private const COLUMN_INPUT_ACTUAL_START = 'actual start';
     private const COLUMN_INPUT_ACTUAL_END = 'actual end';
 
+    private const COLUMN_OUTPUT_P_5571 = 'P 5571';
+    private const COLUMN_OUTPUT_P_6625 = 'P 6625';
+    private const COLUMN_OUTPUT_P_MILJOE = 'P Miljø';
+    private const COLUMN_OUTPUT_P_VARSEL = 'P Varsel';
+    private const COLUMN_OUTPUT_P_DELT = 'P Delt';
+    private const COLUMN_OUTPUT_P_50_PCT = 'P 50%';
+    private const COLUMN_OUTPUT_P_100_PCT = 'P 100%';
+    private const COLUMN_OUTPUT_P_ANTAL = 'P Antal';
+    private const COLUMN_OUTPUT_P_NORMAL = 'P Normal';
+    private const COLUMN_OUTPUT_TIMER2 = 'Timer2';
+    private const COLUMN_OUTPUT_ARBEJDSDAGE = 'Arbejdsdage';
+
+    private const COLUMN_SUM_P_5571 = 'Σ P 5571';
+    private const COLUMN_SUM_P_6625 = 'Σ P 6625';
+    private const COLUMN_SUM_P_MILJOE = 'Σ P Miljø';
+    private const COLUMN_SUM_P_VARSEL = 'Σ P Varsel';
+    private const COLUMN_SUM_P_DELT = 'Σ P Delt';
+    private const COLUMN_SUM_P_50_PCT = 'Σ P 50%';
+    private const COLUMN_SUM_P_100_PCT = 'Σ P 100%';
+    private const COLUMN_SUM_P_ANTAL = 'Σ P Antal';
+    private const COLUMN_SUM_P_NORMAL = 'Σ P Normal';
+    private const COLUMN_SUM_P_TIMER2 = 'Σ Timer2';
+    private const COLUMN_SUM_P_ARBEJDSDAGE = 'Σ Arbejdsdage';
+
     private const COLUMN_OUTPUT_EMPLOYEE_NUMBER = 'Medarbejdernummer';
     private const COLUMN_OUTPUT_LOENART = 'Lønart';
     private const COLUMN_OUTPUT_LOEBENR = 'Løbenr.';
@@ -169,6 +200,44 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
     private const COLUMN_TEMP_IKKE_PLANLAGT7 = 'ikke planlagt 7';
     private const COLUMN_TEMP_13_TIMER = '13 timer';
     private const COLUMN_TEMP_11_TIMER = '11 timer';
+    private const COLUMN_TEMP_5571 = '5571';
+    private const COLUMN_TEMP_6625 = '6625';
+    private const COLUMN_TEMP_MILJOE = 'miljø';
+    private const COLUMN_TEMP_50_PCT = '50 %';
+    private const COLUMN_TEMP_100_PCT = '100 %';
+    private const COLUMN_TEMP_DAGEN_FOER = 'dagen før';
+    private const COLUMN_TEMP_ANTAL_HVILETIDSBRUD = 'antal hviletidsbrud';
+
+    private const COLUMN_TEST_REFERENCE_TIMER = 'test Timer';
+    private const COLUMN_TEST_REFERENCE_OVERTID = 'test Overtid';
+    private const COLUMN_TEST_REFERENCE_NAT = 'test Nat';
+    private const COLUMN_TEST_REFERENCE_IKKE_PLANLAGT_7 = 'test Ikke pl./7';
+    private const COLUMN_TEST_REFERENCE_50_PCT = 'test 50%';
+    private const COLUMN_TEST_REFERENCE_13_TIMER = 'test 13 timer';
+    private const COLUMN_TEST_REFERENCE_11_TIMER = 'test 11 timer';
+    private const COLUMN_TEST_REFERENCE_DAGEN_FOER = 'test Dagen før';
+    private const COLUMN_TEST_REFERENCE_100_PCT = 'test 100%';
+    private const COLUMN_TEST_REFERENCE_ANTAL_HVILETIDSBRUD = 'test Antal Hv.';
+    private const COLUMN_TEST_REFERENCE_5571 = 'test 5571';
+    private const COLUMN_TEST_REFERENCE_6625 = 'test 6625';
+    private const COLUMN_TEST_REFERENCE_MILJOE = 'test Miljø';
+    private const COLUMN_TEST_REFERENCE_VARSEL = 'test Varsel';
+    private const COLUMN_TEST_REFERENCE_DEL = 'test Delt';
+    private const COLUMN_TEST_REFERENCE_HELLIGDAG = 'test Helligdag';
+    private const COLUMN_TEST_REFERENCE_OT = 'test OT';
+    private const COLUMN_TEST_REFERENCE_P_5571 = 'test P 5571';
+    private const COLUMN_TEST_REFERENCE_P_6625 = 'test P 6625';
+    private const COLUMN_TEST_REFERENCE_P_MILJOE = 'test P Miljø';
+    private const COLUMN_TEST_REFERENCE_P_VARSEL = 'test P Varsel';
+    private const COLUMN_TEST_REFERENCE_P_DELT = 'test P Delt';
+    private const COLUMN_TEST_REFERENCE_P_50_PCT = 'test P 50%';
+    private const COLUMN_TEST_REFERENCE_P_100_PCT = 'test P 100%';
+    private const COLUMN_TEST_REFERENCE_P_ANTAL = 'test P Antal';
+    private const COLUMN_TEST_REFERENCE_P_NORMAL = 'test P Normal';
+    private const COLUMN_TEST_REFERENCE_TIMER2 = 'test Timer 2';
+    private const COLUMN_TEST_REFERENCE_ARBEJDSDAGE = 'test Arbejdsdage';
+
+    private $testMode = false;
 
     /**
      * Data grouped by employee number and sorted ascending by date.
@@ -186,11 +255,19 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
      */
     protected function load(Spreadsheet $spreadsheet): void
     {
+        $this->testMode = 1 === (int) getenv('OVERENSKOMSTBEREGNER_TEST_MODE');
+
         // Get the first sheet.
         $sheet = $spreadsheet->getSheet(0);
 
         $dataColumnStart = 'A';
         $dataColumnEnd = 'J';
+
+        if ($this->testMode) {
+            // TEST
+            $dataColumnEnd = 'AL';
+        }
+
         $dataRowStart = 3;
         $dataRowEnd = $sheet->getHighestRow('E');
         $dataRange = $dataColumnStart.$dataRowStart.':'.$dataColumnEnd.$dataRowEnd;
@@ -223,10 +300,45 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
                     self::COLUMN_INPUT_ACTUAL_END => $row[9],
                 ];
 
-                // Assume that actual end is on next day is less that actual start.
-                if ($employeeRow[self::COLUMN_INPUT_ACTUAL_END] < $employeeRow[self::COLUMN_INPUT_ACTUAL_START]) {
-                    $employeeRow[self::COLUMN_INPUT_ACTUAL_END] = $employeeRow[self::COLUMN_INPUT_ACTUAL_END]->add(new \DateInterval('P1D'));
+                if ($this->testMode) {
+                    $employeeRow += [
+                        // TEST
+                        self::COLUMN_TEST_REFERENCE_TIMER => $row[self::EXCEL_COLUMN_K],
+                        self::COLUMN_TEST_REFERENCE_OVERTID => $row[self::EXCEL_COLUMN_L],
+                        self::COLUMN_TEST_REFERENCE_NAT => $row[self::EXCEL_COLUMN_M],
+                        self::COLUMN_TEST_REFERENCE_IKKE_PLANLAGT_7 => $row[self::EXCEL_COLUMN_N],
+                        self::COLUMN_TEST_REFERENCE_50_PCT => $row[self::EXCEL_COLUMN_O],
+                        self::COLUMN_TEST_REFERENCE_13_TIMER => $row[self::EXCEL_COLUMN_P],
+                        self::COLUMN_TEST_REFERENCE_11_TIMER => $row[self::EXCEL_COLUMN_Q],
+                        self::COLUMN_TEST_REFERENCE_DAGEN_FOER => $row[self::EXCEL_COLUMN_R],
+                        self::COLUMN_TEST_REFERENCE_100_PCT => $row[self::EXCEL_COLUMN_S],
+                        self::COLUMN_TEST_REFERENCE_ANTAL_HVILETIDSBRUD => $row[self::EXCEL_COLUMN_T],
+                        self::COLUMN_TEST_REFERENCE_5571 => $row[self::EXCEL_COLUMN_U],
+                        self::COLUMN_TEST_REFERENCE_6625 => $row[self::EXCEL_COLUMN_V],
+                        self::COLUMN_TEST_REFERENCE_MILJOE => $row[self::EXCEL_COLUMN_W],
+                        self::COLUMN_TEST_REFERENCE_VARSEL => $row[self::EXCEL_COLUMN_X],
+                        self::COLUMN_TEST_REFERENCE_DEL => $row[self::EXCEL_COLUMN_Y],
+                        self::COLUMN_TEST_REFERENCE_HELLIGDAG => $row[self::EXCEL_COLUMN_Z],
+                        self::COLUMN_TEST_REFERENCE_OT => $row[self::EXCEL_COLUMN_AA],
+                        self::COLUMN_TEST_REFERENCE_P_5571 => $row[self::EXCEL_COLUMN_AB],
+                        self::COLUMN_TEST_REFERENCE_P_6625 => $row[self::EXCEL_COLUMN_AC],
+                        self::COLUMN_TEST_REFERENCE_P_MILJOE => $row[self::EXCEL_COLUMN_AD],
+                        self::COLUMN_TEST_REFERENCE_P_VARSEL => $row[self::EXCEL_COLUMN_AE],
+                        self::COLUMN_TEST_REFERENCE_P_DELT => $row[self::EXCEL_COLUMN_AF],
+                        self::COLUMN_TEST_REFERENCE_P_50_PCT => $row[self::EXCEL_COLUMN_AG],
+                        self::COLUMN_TEST_REFERENCE_P_100_PCT => $row[self::EXCEL_COLUMN_AH],
+                        self::COLUMN_TEST_REFERENCE_P_ANTAL => $row[self::EXCEL_COLUMN_AI],
+                        self::COLUMN_TEST_REFERENCE_P_NORMAL => $row[self::EXCEL_COLUMN_AJ],
+                        self::COLUMN_TEST_REFERENCE_TIMER2 => $row[self::EXCEL_COLUMN_AK],
+                        self::COLUMN_TEST_REFERENCE_ARBEJDSDAGE => $row[self::EXCEL_COLUMN_AL],
+                        // TEST
+                    ];
                 }
+
+                // // Assume that actual end is on next day if less that actual start.
+                // if ($employeeRow[self::COLUMN_INPUT_ACTUAL_END] < $employeeRow[self::COLUMN_INPUT_ACTUAL_START]) {
+                //     $employeeRow[self::COLUMN_INPUT_ACTUAL_END] = $employeeRow[self::COLUMN_INPUT_ACTUAL_END]->add(new \DateInterval('P1D'));
+                // }
 
                 // Fill in missing dates.
                 // if (!isset($employeeRow[self::COLUMN_INPUT_ACTUAL_START])) {
@@ -272,18 +384,45 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
         $endDate = $this->dateTime2Excel($this->endDate) + 1;
 
         foreach ($this->data as $employeeNumber => $rows) {
-            // Do some calculations before trimming data.
-            $this->calculateIsOvertime($rows);
-            $this->calculateIkkePlanlagt7($rows);
-            $this->calculate11Timer($rows);
+            $result = $this->calculateEmployee($rows);
 
             // Keep only rows in the specified report date interval.
-            $rows = array_values(array_filter($rows, function (array $row) use ($startDate, $endDate) {
+            $result = array_values(array_filter($result, function (array $row) use ($startDate, $endDate) {
                 return $startDate <= $row[self::COLUMN_INPUT_DATE]
                     && $row[self::COLUMN_INPUT_DATE] < $endDate;
             }));
 
-            $this->result[$employeeNumber] = $this->calculateEmployee($rows);
+            $row = $rows[0];
+
+            // Compute non-zero sums.
+            $result = array_filter([
+                self::COLUMN_INPUT_NAME => $row[self::COLUMN_INPUT_NAME],
+                self::COLUMN_INPUT_EMPLOYEE_NUMBER => $row[self::COLUMN_INPUT_EMPLOYEE_NUMBER],
+
+                self::COLUMN_SUM_P_5571 => array_sum(array_column($result, self::COLUMN_OUTPUT_P_5571)),
+                self::COLUMN_SUM_P_6625 => array_sum(array_column($result, self::COLUMN_OUTPUT_P_6625)),
+                self::COLUMN_SUM_P_MILJOE => array_sum(array_column($result, self::COLUMN_OUTPUT_P_MILJOE)),
+                self::COLUMN_SUM_P_VARSEL => array_sum(array_column($result, self::COLUMN_OUTPUT_P_VARSEL)),
+                self::COLUMN_SUM_P_DELT => array_sum(array_column($result, self::COLUMN_OUTPUT_P_DELT)),
+                self::COLUMN_SUM_P_50_PCT => array_sum(array_column($result, self::COLUMN_OUTPUT_P_50_PCT)),
+                self::COLUMN_SUM_P_100_PCT => array_sum(array_column($result, self::COLUMN_OUTPUT_P_100_PCT)),
+                self::COLUMN_SUM_P_ANTAL => array_sum(array_column($result, self::COLUMN_OUTPUT_P_ANTAL)),
+                self::COLUMN_SUM_P_NORMAL => array_sum(array_column($result, self::COLUMN_OUTPUT_P_NORMAL)),
+                self::COLUMN_SUM_P_TIMER2 => array_sum(array_column($result, self::COLUMN_OUTPUT_TIMER2)),
+                self::COLUMN_SUM_P_ARBEJDSDAGE => array_sum(array_column($result, self::COLUMN_OUTPUT_ARBEJDSDAGE)),
+            ]);
+
+            $this->result[$employeeNumber] = $result;
+        }
+
+        header('content-type: text/plain');
+        echo var_export($this->result, true);
+        die(__FILE__.':'.__LINE__.':'.__METHOD__);
+
+        if ($this->testMode) {
+            foreach ($this->result as $rows) {
+                $this->testCheckRows($rows);
+            }
         }
     }
 
@@ -297,6 +436,16 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
         $result = new Spreadsheet();
         $sheet = $result->getActiveSheet();
         $rowIndex = 1;
+
+        // Sum af P 5571
+        // Sum af P 6625
+        // Sum af P Miljø
+        // Sum af P Varsel
+        // Sum af P Delt
+        // Sum af P 50%
+        // Sum af P 100%
+        // Sum af P Antal
+        // Sum af P Normal
 
         foreach ($this->result as $employeeNumber => $rows) {
             foreach ($rows as $row) {
@@ -357,10 +506,26 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
         return $result;
     }
 
-    private function calculateEmployee(array $rows)
+    private function calculateEmployee(array &$rows)
     {
-        foreach ($rows as $index => &$row) {
-            $row[self::COLUMN_TEMP_OVERTID] = $this->calculateOvertid($row);
+        $this->setRows($rows);
+        // Some values must be calculated before other stuff.
+        while ($this->nextRow()) {
+            $this->calculate13Timer();
+            $this->calculateDagenFoer();
+        }
+
+        $this->setRows($rows);
+        while ($this->nextRow()) {
+            $this->calculateP5571();
+            $this->calculateP6625();
+            $this->calculatePMiljoe();
+            $this->calculatePVarsel();
+            $this->calculatePDelt();
+            $this->calculateP50Pct();
+            $this->calculateP100Pct();
+            $this->calculatePAntal();
+            $this->calculatePNormal();
         }
 
         return $rows;
@@ -374,21 +539,743 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
         // ];
     }
 
+    /**
+     * @Calculation(
+     *     name="arbejdstimer",
+     *     description="",
+     *     formula="",
+     *     overenskomsttekst="",
+     *     excelFormula="
+     =IF(
+     ISERROR(
+     VLOOKUP(
+     E3,
+     Helligdage!$B:$B,
+     1,
+     FALSE
+     )
+     ),
+     IF(
+     F3 = "Vagt",
+     IF(
+     WEEKDAY(
+     E3,
+     2
+     ) < 6,
+     IF(
+     I3 < E3 + Meta!$D$4,
+     IF(
+     J3 < E3 + Meta!$D$4,
+     J3 - I3,
+     IF(
+     J3 < E3 + Meta!$D$3,
+     E3 + Meta!$D$4 - I3,
+     E3 + Meta!$D$4 - I3 + J3 - E3 + Meta!$D$3
+     )
+     ),
+     IF(
+     J3 < E3 + Meta!$D$3,
+     0,
+     IF(
+     J3 < E3 + 1 + Meta!$D$4,
+     J3 - E3 - Meta!$D$3,
+     1 + Meta!$D$4 - I3
+     )
+     )
+     ),
+     IF(
+     WEEKDAY(
+     E3,
+     2
+     ) = 6,
+     IF(
+     I3 < E3 + Meta!$D$4,
+     IF(
+     J3 < E3 + Meta!$D$4,
+     J3 - I3,
+     0
+     ),
+     IF(
+     J3 < E3 + Meta!$D$2,
+     J3 - I3,
+     IF(
+     I3 < E3 + Meta!$D$2,
+     IF(
+     J3 < E3 + Meta!$D$3,
+     J3 - ( E3 + Meta!$D$2 ),
+     E3 + Meta!$D$3 - ( E3 + Meta!$D$2 )
+     ),
+     IF(
+     J3 < E3 + Meta!$D$3,
+     J3 - I3,
+     E3 + Meta!$D$3 - I3
+     )
+     )
+     )
+     ),
+     0
+     )
+     ),
+     0
+     ),
+     0
+     )
+     "
+     * )
+     */
+    private function calculate5571()
+    {
+        return $this->calculateColumn(self::COLUMN_TEMP_5571, function () {
+            if ($this->isHoliday($this->get(self::COLUMN_INPUT_DATE))) {
+                return 0;
+            }
+
+            $event = $this->get(self::COLUMN_INPUT_EVENT);
+            $date = $this->get(self::COLUMN_INPUT_DATE);
+            $_5571_start = $this->_5571_start;
+            $_5571_midt = $this->_5571_midt;
+            $_5571_slut = $this->_5571_slut;
+            $actual_start = $this->get(self::COLUMN_INPUT_ACTUAL_START); // I
+            $actual_end = $this->get(self::COLUMN_INPUT_ACTUAL_END); // J
+
+            if (self::EVENT_VAGT === $event) {
+                if ($this->getWeekday($date) < self::WEEKDAY_SATURDAY) {
+                    if ($actual_start < $date + $_5571_slut) {
+                        if ($actual_end < $date + $_5571_slut) {
+                            $actual_end - $actual_start;
+                        } else {
+                            if ($actual_end < $date + $_5571_midt) {
+                                return $date + $_5571_slut - $actual_start;
+                            } else {
+                                return $date + $_5571_slut - $actual_start + $actual_end - $date + $_5571_midt;
+                            }
+                        }
+                    } else {
+                        if ($actual_end < $date + $_5571_midt) {
+                            return 0;
+                        } else {
+                            if ($actual_end < $date + 1 + $_5571_slut) {
+                                return $actual_end - $date - $_5571_midt;
+                            } else {
+                                return 1 + $_5571_slut - $actual_start;
+                            }
+                        }
+                    }
+                } else {
+                    if (self::WEEKDAY_SATURDAY === $this->getWeekday($date)) {
+                        if ($actual_start < $date + $_5571_slut) {
+                            if ($actual_end < $date + $_5571_slut) {
+                                return $actual_end - $actual_start;
+                            } else {
+                                return 0;
+                            }
+                        } else {
+                            if ($actual_end < $date + $_5571_start) {
+                                return $actual_end - $actual_start;
+                            } else {
+                                if ($actual_start < $date + $_5571_start) {
+                                    if ($actual_end < $date + $_5571_midt) {
+                                        return $actual_end - ($date + $_5571_start);
+                                    } else {
+                                        return $date + $_5571_midt - ($date + $_5571_start);
+                                    }
+                                } else {
+                                    if ($actual_end < $date + $_5571_midt) {
+                                        return $actual_end - $actual_start;
+                                    } else {
+                                        return $date + $_5571_midt - $actual_start;
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        return 0;
+                    }
+                }
+            } else {
+                return 0;
+            }
+        });
+    }
+
+    /**
+     * @Calculation(
+     *     name="arbejdstimer",
+     *     description="",
+     *     formula="",
+     *     overenskomsttekst="",
+     *     excelFormula="=IF(AND(Startdato<=Data!$E3;Data!$E3<=Slutdato);Data!U3*24;"")"
+     * )
+     */
+    private function calculateP5571()
+    {
+        return $this->calculateColumn(self::COLUMN_OUTPUT_P_5571, function () {
+            return 24 * $this->calculate5571();
+        });
+    }
+
+    /**
+     * @Calculation(
+     *     name="arbejdstimer",
+     *     description="",
+     *     formula="",
+     *     overenskomsttekst="",
+     *     excelFormula="
+     =IF(
+     Z3 = "X",
+     IF(
+     OR(
+     J3 < E3 + 1,
+     WEEKDAY(
+     E3 + 1,
+     2
+     ) = 7,
+     OFFSET(
+     Z3,
+     1,
+     0
+     ) = "X"
+     ),
+     J3 - I3,
+     IF(
+     WEEKDAY(
+     E3 + 1,
+     2
+     ) = 1,
+     IF(
+     J3 < E3 + 1 + Meta!$E$3,
+     J3 - I3,
+     E3 + 1 + Meta!$E$3
+     ),
+     0
+     )
+     ),
+     IF(
+     F3 = "Vagt",
+     IF(
+     OR(
+     WEEKDAY(
+     E3,
+     2
+     ) >= 6,
+     WEEKDAY(
+     E3,
+     2
+     ) = 1
+     ),
+     IF(
+     WEEKDAY(
+     E3,
+     2
+     ) = 6,
+     IF(
+     I3 < E3 + Meta!$E$2,
+     IF(
+     J3 <= E3 + Meta!$E$2,
+     0,
+     J3 - ( E3 + Meta!$E$2 )
+     ),
+     J3 - I3
+     ),
+     IF(
+     WEEKDAY(
+     E3,
+     2
+     ) = 7,
+     IF(
+     J3 < E3 + 1 + Meta!$E$3,
+     J3 - I3,
+     E3 + 1 + Meta!$E$3 - I3
+     ),
+     IF(
+     I3 > E3 + Meta!$E$3,
+     0,
+     IF(
+     J3 > E3 + Meta!$E$3,
+     E3 + Meta!$E$3 - I3,
+     J3 - I3
+     )
+     )
+     )
+     ),
+     0
+     ),
+     0
+     )
+     )
+     "
+     * )
+     */
+    private function calculate6625()
+    {
+        return $this->calculateColumn(self::COLUMN_TEMP_6625, function () {
+            $date = $this->get(self::COLUMN_INPUT_DATE); // E
+            $date_prev = $this->get(self::COLUMN_INPUT_DATE, -1);
+            $event = $this->get(self::COLUMN_INPUT_EVENT);
+            $actual_start = $this->get(self::COLUMN_INPUT_ACTUAL_START); // I
+            $actual_end = $this->get(self::COLUMN_INPUT_ACTUAL_END); // J
+            $_6625_start = $this->_6625_start; // Meta!$E$2
+            $_6625_slut = $this->_6625_slut; // Meta!$E$3
+
+            if ($this->isHoliday($date)) {
+                if ($actual_end < $date + 1
+                    || self::WEEKDAY_SUNDAY === $this->getWeekday($date + 1)
+                    || $this->isHoliday($date_prev)) {
+                    return $actual_end - $actual_start;
+                } else {
+                    if (self::WEEKDAY_MONDAY === $this->getWeekday($date + 1)) {
+                        if ($actual_end < $date + 1 + $_6625_slut) {
+                            return $actual_end - $actual_start;
+                        } else {
+                            return $date + 1 + $_6625_slut;
+                        }
+                    } else {
+                        return 0;
+                    }
+                }
+            } else {
+                if (self::EVENT_VAGT === $event) {
+                    if ($this->getWeekday($date) >= self::WEEKDAY_SATURDAY
+                        || self::WEEKDAY_MONDAY === $this->getWeekday($date)) {
+                        if (self::WEEKDAY_SATURDAY === $this->getWeekday($date)) {
+                            if ($actual_start < $date + $_6625_start) {
+                                if ($actual_end <= $date + $_6625_start) {
+                                    return                                    0;
+                                } else {
+                                    return $actual_end - ($date + $_6625_start);
+                                }
+                            } else {
+                                return $actual_end - $actual_start;
+                            }
+                        } else {
+                            if (self::WEEKDAY_SUNDAY === $this->getWeekday($date)) {
+                                if ($actual_end < $date + 1 + $_6625_slut) {
+                                    return $actual_end - $actual_start;
+                                } else {
+                                    return $date + 1 + $_6625_slut - $actual_start;
+                                }
+                            } else {
+                                if (
+                                    $actual_start > $date + $_6625_slut) {
+                                    return 0;
+                                } else {
+                                    if ($actual_end > $date + $_6625_slut) {
+                                        return $date + $_6625_slut - $actual_start;
+                                    } else {
+                                        return $actual_end - $actual_start;
+                                    }
+                                }
+                            }
+                        }
+
+                        return 0;
+                    }
+
+                    return 0;
+                }
+            }
+        });
+    }
+
+    /**
+     * @Calculation(
+     *     name="arbejdstimer",
+     *     description="",
+     *     formula="",
+     *     overenskomsttekst="",
+     *     excelFormula=""
+     * )
+     */
+    private function calculateP6625()
+    {
+        return $this->calculateColumn(self::COLUMN_OUTPUT_P_6625, function () {
+            return 24 * $this->calculate6625();
+        });
+    }
+
+    /**
+     * @Calculation(
+     *     name="arbejdstimer",
+     *     description="",
+     *     formula="",
+     *     overenskomsttekst="",
+     *     excelFormula="=IF(F3=""Vagt"",IF(I3<E3+Meta!$F$3,IF(J3<E3+Meta!$F$3,J3-I3,IF(J3<=E3+MiljoStart,E3+Meta!$F$3-I3,(E3+Meta!$F$3-I3)+(J3-(E3+MiljoStart)))),IF(I3<E3+MiljoStart,IF(J3<=E3+MiljoStart,0,J3-(E3+MiljoStart)),IF(J3<=E3+Meta!$F$3+1,J3-I3,E3+Meta!$F$3+1-I3))),0)*8.1%"
+     * )
+     */
+    private function calculateMiljoe()
+    {
+        return $this->calculateColumn(self::COLUMN_TEMP_MILJOE, function () {
+            $calculate = function () {
+                $date = $this->get(self::COLUMN_INPUT_DATE); // E
+                $event = $this->get(self::COLUMN_INPUT_EVENT); // F
+                $actual_start = $this->get(self::COLUMN_INPUT_ACTUAL_START); // I
+                $actual_end = $this->get(self::COLUMN_INPUT_ACTUAL_END); // J
+                $miljoe_start = $this->miljoe_start; // Meta!$F$2
+                $miljoe_slut = $this->miljoe_slut; // Meta!$F$3
+
+                if (self::EVENT_VAGT === $event) {
+                    if ($actual_start < $date + $miljoe_slut) {
+                        if ($actual_end < $date + $miljoe_slut) {
+                            return $actual_end - $actual_start;
+                        } else {
+                            if ($actual_end <= $date + $miljoe_start) {
+                                return $date + $miljoe_slut - $actual_start;
+                            } else {
+                                return ($date + $miljoe_slut - $actual_start) + ($actual_end - ($date + $miljoe_start));
+                            }
+                        }
+                    } else {
+                        if ($actual_start < $date + $miljoe_start) {
+                            if ($actual_end <= $date + $miljoe_start) {
+                                return 0;
+                            } else {
+                                return $actual_end - ($date + $miljoe_start);
+                            }
+                        } else {
+                            if ($actual_end <= $date + $miljoe_slut + 1) {
+                                return $actual_end - $actual_start;
+                            } else {
+                                return $date + $miljoe_slut + 1 - $actual_start;
+                            }
+                        }
+                    }
+                } else {
+                    return 0;
+                }
+            };
+
+            return $calculate() * 0.081;
+        });
+    }
+
+    /**
+     * @Calculation(
+     *     name="arbejdstimer",
+     *     description="",
+     *     formula="",
+     *     overenskomsttekst="",
+     *     excelFormula=""
+     * )
+     */
+    private function calculatePMiljoe()
+    {
+        return $this->calculateColumn(self::COLUMN_OUTPUT_P_MILJOE, function () {
+            return 24 * $this->calculateMiljoe();
+        });
+    }
+
+//    /**
+//     * @Calculation(
+//     *     name="arbejdstimer",
+//     *     description="",
+//     *     formula="",
+//     *     overenskomsttekst="",
+//     *     excelFormula=""
+//     * )
+//     */
+//    private function calculateVarsel()
+//    {
+//        return $this->calculateColumn(self::COLUMN_TEMP_VARSEL, function () {
+//            return $this->calculateVarsel();
+//        });
+//    }
+
+    /**
+     * @Calculation(
+     *     name="arbejdstimer",
+     *     description="",
+     *     formula="",
+     *     overenskomsttekst="",
+     *     excelFormula=""
+     * )
+     */
+    private function calculatePVarsel()
+    {
+        return $this->calculateColumn(self::COLUMN_OUTPUT_P_VARSEL, function () {
+            return self::EVENT_LOEN_VARSEL === $this->get(self::COLUMN_INPUT_EVENT) ? 1 : null;
+        });
+    }
+
+    /**
+     * @Calculation(
+     *     name="arbejdstimer",
+     *     description="",
+     *     formula="",
+     *     overenskomsttekst="",
+     *     excelFormula=""
+     * )
+     */
+    private function calculatePDelt()
+    {
+        return $this->calculateColumn(self::COLUMN_OUTPUT_P_DELT, function () {
+            return self::EVENT_LOEN_DELT_TJENESTE === $this->get(self::COLUMN_INPUT_EVENT) ? 1 : null;
+        });
+    }
+
+    /**
+     * @Calculation(
+     *     name="arbejdstimer",
+     *     description="",
+     *     formula="",
+     *     overenskomsttekst="",
+     *     excelFormula="
+=IF(
+    AND(
+        HLOOKUP(
+            VLOOKUP(
+                Data!C3,
+                Overenskomst,
+                3,
+                FALSE
+            ),
+            Periode,
+            2,
+            FALSE
+        ) <= Data!$E3,
+        Data!$E3 <=
+        HLOOKUP(
+            VLOOKUP(
+                Data!C3,
+                Overenskomst,
+                3,
+                FALSE
+            ),
+            Periode,
+            3,
+            FALSE
+        )
+    ),
+    O3 * 24,
+    """"
+)
+"
+     * )
+     */
+    private function calculateP50Pct()
+    {
+        return $this->calculateColumn(self::COLUMN_OUTPUT_P_50_PCT, function () {
+            $contract = $this->get(self::COLUMN_INPUT_CONTRACT);
+            $date = $this->get(self::COLUMN_INPUT_DATE);
+            if (true
+// @TODO: What's going on here?! Is this just start/end date?
+//                     HLOOKUP(
+//                         $this->getNormperiode($contract),
+//                         Periode,
+//                         2,
+//                         FALSE
+//                     ) <= $date
+
+// &&
+
+//                     $date <=
+//                     HLOOKUP(
+//                         $this->getNormperiode($contract),
+//                         Periode,
+//                         3,
+//                         FALSE
+//                     )
+                ) {
+                return $this->calculate50Pct() * 24;
+            } else {
+                return null;
+            }
+        });
+    }
+
+    /**
+     * @Calculation(
+     *     name="arbejdstimer",
+     *     description="",
+     *     formula="",
+     *     overenskomsttekst="",
+     *     excelFormula=""
+     * )
+     */
+    private function calculateP100Pct()
+    {
+        return $this->calculateColumn(self::COLUMN_OUTPUT_P_100_PCT, function () {
+            $contract = $this->get(self::COLUMN_INPUT_CONTRACT);
+            $date = $this->get(self::COLUMN_INPUT_DATE);
+            if (true
+// @TODO: What's going on here?! Is this just start/end date?
+//                     HLOOKUP(
+//                         $this->getNormperiode($contract),
+//                         Periode,
+//                         2,
+//                         FALSE
+//                     ) <= $date
+
+// &&
+
+//                     $date <=
+//                     HLOOKUP(
+//                         $this->getNormperiode($contract),
+//                         Periode,
+//                         3,
+//                         FALSE
+//                     )
+                ) {
+                return $this->calculate100Pct() * 24;
+            } else {
+                return null;
+            }
+        });
+    }
+
+    /**
+     * @Calculation(
+     *     name="arbejdstimer",
+     *     description="",
+     *     formula="",
+     *     overenskomsttekst="",
+     *     excelFormula=""
+     * )
+     */
+    private function calculatePAntal()
+    {
+        return $this->calculateColumn(self::COLUMN_OUTPUT_P_ANTAL, function () {
+            // @TODO Are `24 * ` missing here?
+            return $this->calculateAntalHviletidsbrud();
+        });
+    }
+
+    /**
+     * @Calculation(
+     *     name="arbejdstimer",
+     *     description="",
+     *     formula="",
+     *     overenskomsttekst="",
+     *     excelFormula="
+=IF(
+    AND(
+        HLOOKUP(
+            VLOOKUP(
+                Data!C3,
+                Overenskomst,
+                3,
+                FALSE
+            ),
+            Periode,
+            2,
+            FALSE
+        ) <= Data!$E3,
+        Data!$E3 <=
+        HLOOKUP(
+            VLOOKUP(
+                Data!C3,
+                Overenskomst,
+                3,
+                FALSE
+            ),
+            Periode,
+            3,
+            FALSE
+        )
+    ),
+    IF(
+        K3 > 0,
+        K3 * 24 -
+        SUM(
+            AG3:AH3
+        ),
+        0
+    ),
+    """"
+)
+"
+     * )
+     */
+    private function calculatePNormal()
+    {
+        return $this->calculateColumn(self::COLUMN_OUTPUT_P_NORMAL, function () {
+            if (true
+                // @TODO: What's going on here?! Is this just start/end date?
+                //                     HLOOKUP(
+                //                         $this->getNormperiode($contract),
+                //                         Periode,
+                //                         2,
+                //                         FALSE
+                //                     ) <= $date
+
+                // &&
+
+                //                     $date <=
+                //                     HLOOKUP(
+                //                         $this->getNormperiode($contract),
+                //                         Periode,
+                //                         3,
+                //                         FALSE
+                //                     )
+            ) {
+                $timer = $this->calculateTimer();
+                $p50Pct = $this->calculateP50Pct();
+                $p100Pct = $this->calculateP100Pct();
+                if ($timer > 0) {
+                    return $timer * 24 - ($p50Pct + $p100Pct);
+                } else {
+                    return   0;
+                }
+            } else {
+                return null;
+            }
+        });
+    }
+
+    /**
+     * @Calculation(
+     *     name="arbejdstimer",
+     *     description="",
+     *     formula="",
+     *     overenskomsttekst="",
+     *     excelFormula=""
+     * )
+     */
+    private function calculateTimer2()
+    {
+        // @TODO: Is this actually used?
+        return $this->calculateColumn(self::COLUMN_OUTPUT_TIMER2, function () {
+            throw new \RuntimeException(__METHOD__.' not implemented');
+        });
+    }
+
+    /**
+     * @Calculation(
+     *     name="arbejdstimer",
+     *     description="",
+     *     formula="",
+     *     overenskomsttekst="",
+     *     excelFormula=""
+     * )
+     */
+    private function calculateArbejdsdage()
+    {
+        // @TODO: Is this actually used?
+        return $this->calculateColumn(self::COLUMN_OUTPUT_ARBEJDSDAGE, function () {
+            $date = $this->get(self::COLUMN_INPUT_DATE);
+            $datePrev = $this->getPrev(self::COLUMN_INPUT_DATE);
+
+            // @TODO: This does not look right!
+            return $date !== $datePrev ? 1 : 0;
+        });
+    }
+
     // @TODO: Is this the complete list?
     private const EVENT_VAGT = 'Vagt';
     private const EVENT_SYGDOM = 'Sygdom';
-    private const EVENT_LØN_OVERTID = 'Løn: Overtid';
-    private const EVENT_LØN_IKKE_PLANLAGT_7_DAG = 'Løn: Ikke planlagt/7. dag';
+    private const EVENT_LOEN_OVERTID = 'Løn: Overtid';
+    private const EVENT_LOEN_IKKE_PLANLAGT_7_DAG = 'Løn: Ikke planlagt/7. dag';
     private const EVENT_KURSUS = 'Kursus';
     private const EVENT_FERIETIMER = 'Ferietimer';
     private const EVENT_SENIORDAG = 'Seniordag';
-    private const EVENT_LØN_DELT_TJENESTE = 'Løn: Delt tjeneste';
+    private const EVENT_LOEN_DELT_TJENESTE = 'Løn: Delt tjeneste';
+    // @TODO Is this event actually used?
+    private const EVENT_LOEN_VARSEL = 'Løn: Varsel';
 
     // @TODO: Is this the complete list?
     // private const CONTRACT_TEKNIK_37_HOURS_3_MÅNEDER = 'Teknik 37 hours 3 måneder';
     private const CONTRACT_TEKNIK_37_HOURS = 'Teknik 37 hours';
     private const CONTRACT_TEKNIK_32_HOURS = 'Teknik 32 hours';
-    private const CONTRACT_TIMELØNNEDE = 'Timelønnede';
+    private const CONTRACT_TIMELOENNEDE = 'Timelønnede';
 
     /**
      * Calculate arbejdstimer.
@@ -403,65 +1290,58 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
      *     },
      *     overenskomsttekst="…",
      *     excelFormula="=
-HVIS(
-    ELLER(
-        F3 = ""Vagt"";
-        OG(
-            F3 = ""Sygdom"";
-            J3 <> 0
-        )
-    );
-    J3 - I3;
-    HVIS(
-        ER.FEJL(
-            LOPSLAG(
-                F3;
-                Normnedsættende;
-                1;
-                FALSK
-            )
-        );
-        0;
-        LOPSLAG(
-            C3;
-            Meta!H:I;
-            2;
-            FALSK
-        ) / 5 / 24
-    )
-)
-",
+     HVIS(
+     ELLER(
+     F3 = ""Vagt"";
+     OG(
+     F3 = ""Sygdom"";
+     J3 <> 0
+     )
+     );
+     J3 - I3;
+     HVIS(
+     ER.FEJL(
+     LOPSLAG(
+     F3;
+     Normnedsættende;
+     1;
+     FALSK
+     )
+     );
+     0;
+     LOPSLAG(
+     C3;
+     Meta!H:I;
+     2;
+     FALSK
+     ) / 5 / 24
+     )
+     )
+     ",
      * )
      */
-    private function calculateTimer(array &$row)
+    private function calculateTimer()
     {
-        $key = self::COLUMN_TEMP_TIMER;
+        return $this->calculateColumn(self::COLUMN_TEMP_TIMER, function () {
+            $contract = $this->get(self::COLUMN_INPUT_CONTRACT);
+            $event = $this->get(self::COLUMN_INPUT_EVENT);
+            $actual_start = $this->get(self::COLUMN_INPUT_ACTUAL_START);
+            $actual_end = $this->get(self::COLUMN_INPUT_ACTUAL_END);
 
-        if (!\array_key_exists($key, $row)) {
-            $calculate = function ($row) {
-                $contract = $this->get(self::COLUMN_INPUT_CONTRACT, $row);
-                $event = $this->get(self::COLUMN_INPUT_EVENT, $row);
-                $actual_end = $this->get(self::COLUMN_INPUT_ACTUAL_END, $row);
-
-                if (self::EVENT_VAGT === $event
-                    || (self::EVENT_SYGDOM === $event && !empty($actual_end))) {
-                    return $row[self::COLUMN_INPUT_ACTUAL_END] - $row[self::COLUMN_INPUT_ACTUAL_START];
-                } elseif (!$this->isNormnedsættende($event)) {
-                    return 0;
-                } else {
-                    return $this->getUgenorm($contract) / 5 / 24;
-                }
-            };
-
-            $row[$key] = $calculate($row);
-        }
-
-        return $row[$key];
+            if (self::EVENT_VAGT === $event
+                || (self::EVENT_SYGDOM === $event && !empty($actual_end))) {
+                return $actual_end - $actual_start;
+            } elseif (!$this->isNormnedsaettende($event)) {
+                return 0;
+            } else {
+                return $this->getUgenorm($contract) / 5 / 24;
+            }
+        });
     }
 
     private $normnedsaettendeItems;
 
-    private function isNormnedsættende($event)
+    private function isNormnedsaettende($event)
     {
         if (null === $this->normnedsaettendeItems) {
             $this->normnedsaettendeItems = array_filter(array_map('trim', explode(PHP_EOL, $this->normnedsaettende)));
@@ -495,48 +1375,46 @@ HVIS(
      *     placeholders={},
      *     overenskomsttekst="",
      *     excelFormula="=
-HVIS(
-    OG(
-        E7 = E6;
-        F6 = ""Løn: Overtid""
-    );
-    ""OT"";
-    HVIS(
-        OG(
-            E7 = E5;
-            F5 = ""Løn: Overtid""
-        );
-        ""OT"";
-        HVIS(
-            OG(
-                E7 = E8;
-                F8 = ""Løn: Overtid""
-            );
-            ""OT"";
-            HVIS(
-                OG(
-                    E7 = E9;
-                    F9 = ""Løn: Overtid""
-                );
-                ""OT"";
-                """"
-            )
-        )
-    )
-)
-",
+     HVIS(
+     OG(
+     E7 = E6;
+     F6 = ""Løn: Overtid""
+     );
+     ""OT"";
+     HVIS(
+     OG(
+     E7 = E5;
+     F5 = ""Løn: Overtid""
+     );
+     ""OT"";
+     HVIS(
+     OG(
+     E7 = E8;
+     F8 = ""Løn: Overtid""
+     );
+     ""OT"";
+     HVIS(
+     OG(
+     E7 = E9;
+     F9 = ""Løn: Overtid""
+     );
+     ""OT"";
+     """"
+     )
+     )
+     )
+     )
+     ",
      * )
      */
-    private function calculateIsOvertime(array &$rows)
+    private function calculateIsOvertime()
     {
-        $numberOfRows = \count($rows);
-        foreach ($rows as $index => &$row) {
-            $row[self::COLUMN_TEMP_IS_OVERTIME] =
-                ($index > 0 && $row[self::COLUMN_INPUT_DATE] === $rows[$index - 1][self::COLUMN_INPUT_DATE] && self::EVENT_LØN_OVERTID === $rows[$index - 1][self::COLUMN_INPUT_EVENT])
-                || ($index > 1 && $row[self::COLUMN_INPUT_DATE] === $rows[$index - 2][self::COLUMN_INPUT_DATE] && self::EVENT_LØN_OVERTID === $rows[$index - 2][self::COLUMN_INPUT_EVENT])
-                || ($index < $numberOfRows - 1 && $row[self::COLUMN_INPUT_DATE] === $rows[$index + 1][self::COLUMN_INPUT_DATE] && self::EVENT_LØN_OVERTID === $rows[$index + 1][self::COLUMN_INPUT_EVENT])
-                || ($index < $numberOfRows - 2 && $row[self::COLUMN_INPUT_DATE] === $rows[$index + 2][self::COLUMN_INPUT_DATE] && self::EVENT_LØN_OVERTID === $rows[$index + 2][self::COLUMN_INPUT_EVENT]);
-        }
+        return $this->calculateColumn(self::COLUMN_TEMP_IS_OVERTIME, function () {
+            return ($this->get(self::COLUMN_INPUT_DATE) === $this->get(self::COLUMN_INPUT_DATE, -2) && self::EVENT_LOEN_OVERTID === $this->get(self::COLUMN_INPUT_EVENT, -2))
+                || ($this->get(self::COLUMN_INPUT_DATE) === $this->get(self::COLUMN_INPUT_DATE, -1) && self::EVENT_LOEN_OVERTID === $this->get(self::COLUMN_INPUT_EVENT, -1))
+                || ($this->get(self::COLUMN_INPUT_DATE) === $this->get(self::COLUMN_INPUT_DATE, +1) && self::EVENT_LOEN_OVERTID === $this->get(self::COLUMN_INPUT_EVENT, +1))
+                || ($this->get(self::COLUMN_INPUT_DATE) === $this->get(self::COLUMN_INPUT_DATE, +2) && self::EVENT_LOEN_OVERTID === $this->get(self::COLUMN_INPUT_EVENT, +2));
+        });
     }
 
     /**
@@ -546,120 +1424,122 @@ HVIS(
      *     formula="",
      *     placeholders={},
      *     overenskomsttekst="§ 6. Overarbejde/deltidsbeskæftigedes merarbejde
-Stk. 1
-Arbejde ud over den ved tjenestelisten fastlagte daglige arbejdstid for en fuldtidsbeskæftiget betragtes som overarbejde.
-Stk. 2
-Arbejde mellem kl. 00.00 - 08.00 betragtes altid som overarbejde. [Se Nat-beregning]
-Stk. 3
-For deltidsansatte er arbejde udover 8 timer dagligt overarbejde, dog ikke hvis tjenesten er planlagt til over 8 timer.
-Stk. 4
-Overarbejde søges godtgjort med frihed (afspadsering), der skal være af samme varighed, som det præsterede overarbejde med tillæg af 50% op rundet til antal hele timer",
+     Stk. 1
+     Arbejde ud over den ved tjenestelisten fastlagte daglige arbejdstid for en fuldtidsbeskæftiget betragtes som overarbejde.
+     Stk. 2
+     Arbejde mellem kl. 00.00 - 08.00 betragtes altid som overarbejde. [Se Nat-beregning]
+     Stk. 3
+     For deltidsansatte er arbejde udover 8 timer dagligt overarbejde, dog ikke hvis tjenesten er planlagt til over 8 timer.
+     Stk. 4
+     Overarbejde søges godtgjort med frihed (afspadsering), der skal være af samme varighed, som det præsterede overarbejde med tillæg af 50% op rundet til antal hele timer",
      *     excelFormula="=
-HVIS(
-    C3 <> ""Timelønnede"";
-    HVIS(
-        OG(
-            J3 > H3;
-            N3 = 0;
-            AA3 = ""OT""
-        );
-        HVIS(
-            J3 < E3 + 1;
-            J3 - H3;
-            HVIS(
-                H3 >= E3 + 1;
-                0;
-                E3 + Meta!$A$2 - H3
-            )
-        );
-        0
-    );
-    HVIS(
-        OG(
-            J3 > H3;
-            K3 > Meta!$G$2
-        );
-        HVIS(
-            J3 < E3 + 1;
-            HVIS(
-                H3 - G3 < Meta!$G$2;
-                K3 - Meta!$G$2;
-                K3 - ( H3 - G3 )
-            );
-            HVIS(
-                J3 < E3 + 1 + Meta!$A$3;
-                HVIS(
-                    H3 - G3 < Meta!$G$2;
-                    J3 - Meta!$G$2 - M3;
-                    K3 - ( H3 - G3 ) - M3
-                );
-                HVIS(
-                    I3 < E3 + 21 / 24;
-                    0;
-                    J3 - ( E3 + 1 + Meta!$A$3 )
-                )
-            )
-        );
-        0
-    )
-)
-",
+     HVIS(
+     C3 <> ""Timelønnede"";
+     HVIS(
+     OG(
+     J3 > H3;
+     N3 = 0;
+     AA3 = ""OT""
+     );
+     HVIS(
+     J3 < E3 + 1;
+     J3 - H3;
+     HVIS(
+     H3 >= E3 + 1;
+     0;
+     E3 + Meta!$A$2 - H3
+     )
+     );
+     0
+     );
+     HVIS(
+     OG(
+     J3 > H3;
+     K3 > Meta!$G$2
+     );
+     HVIS(
+     J3 < E3 + 1;
+     HVIS(
+     H3 - G3 < Meta!$G$2;
+     K3 - Meta!$G$2;
+     K3 - ( H3 - G3 )
+     );
+     HVIS(
+     J3 < E3 + 1 + Meta!$A$3;
+     HVIS(
+     H3 - G3 < Meta!$G$2;
+     J3 - Meta!$G$2 - M3;
+     K3 - ( H3 - G3 ) - M3
+     );
+     HVIS(
+     I3 < E3 + 21 / 24;
+     0;
+     J3 - ( E3 + 1 + Meta!$A$3 )
+     )
+     )
+     );
+     0
+     )
+     )
+     ",
      * )
      */
-    private function calculateOvertid(array &$row)
+    private function calculateOvertid()
     {
-        $contract = $row[self::COLUMN_INPUT_CONTRACT];
-        $planned_start = $row[self::COLUMN_INPUT_PLANNED_START];
-        $planned_end = $row[self::COLUMN_INPUT_PLANNED_END];
-        $actual_end = $row[self::COLUMN_INPUT_ACTUAL_END];
-        $OT = $this->get(self::COLUMN_TEMP_IS_OVERTIME, $row);
-        $timeløn = $this->timeloen;
-        $timer = $this->calculateTimer($row);
-        $date = $row[self::COLUMN_INPUT_DATE];
-        $overtid_start = $this->overtidNatFra;
-        $overtid_slut = $this->overtidNatTil;
-        $nat = (int) $this->calculateNat($row);
+        return $this->calculateColumn(self::COLUMN_TEMP_OVERTID, function () {
+            $contract = $this->get(self::COLUMN_INPUT_CONTRACT);
+            $planned_start = $this->get(self::COLUMN_INPUT_PLANNED_START);
+            $planned_end = $this->get(self::COLUMN_INPUT_PLANNED_END);
+            $actual_end = $this->get(self::COLUMN_INPUT_ACTUAL_END);
+            $OT = $this->calculateIsOvertime();
+            $timeloen = $this->timeloen;
+            $timer = $this->calculateTimer();
+            $date = $this->get(self::COLUMN_INPUT_DATE);
+            $overtid_start = $this->overtidNatFra;
+            $overtid_slut = $this->overtidNatTil;
+            $nat = (int) $this->calculateNat();
 
-        if (self::CONTRACT_TIMELØNNEDE !== $contract) {
-            if ($actual_end > $planned_end && $OT) {
-                if ($actual_end < $date + 1) {
-                    return $actual_end - $planned_end;
-                } else {
-                    if ($planned_end >= $date + 1) {
-                        return 0;
-                    } else {
-                        return $date + $overtid_slut - $planned_end;
-                    }
-
-                    return 0;
-                }
-            } else {
-                if ($actual_end > $planned_end && $timer > $timeløn) {
+            if (self::CONTRACT_TIMELOENNEDE !== $contract) {
+                if ($actual_end > $planned_end && $OT) {
                     if ($actual_end < $date + 1) {
-                        if ($planned_end - $planned_start < $timeløn) {
-                            return $timer - $timeløn;
-                        } else {
-                            return $timer - $planned_end - $planned_start;
-                        }
+                        return $actual_end - $planned_end;
                     } else {
-                        if ($actual_end < $date + 1 + $overtid_start) {
-                            if ($planned_end - $planned_start < $overtid_slut) {
-                                return $actual_end - $overtid_slut - $nat;
+                        if ($planned_end >= $date + 1) {
+                            return 0;
+                        } else {
+                            return $date + $overtid_slut - $planned_end;
+                        }
+
+                        return 0;
+                    }
+                } else {
+                    if ($actual_end > $planned_end && $timer > $timeloen) {
+                        if ($actual_end < $date + 1) {
+                            if ($planned_end - $planned_start < $timeloen) {
+                                return $timer - $timeloen;
                             } else {
-                                return $timer - $planned_end - $planned_start - $nat;
+                                return $timer - $planned_end - $planned_start;
                             }
-                            if ($actual_start < $date + 21 / 24) {
-                                return 0;
-                            } else {
-                                return $actual_end - ($date + 1 + $overtid_start);
+                        } else {
+                            if ($actual_end < $date + 1 + $overtid_start) {
+                                if ($planned_end - $planned_start < $overtid_slut) {
+                                    return $actual_end - $overtid_slut - $nat;
+                                } else {
+                                    return $timer - $planned_end - $planned_start - $nat;
+                                }
+                                if ($actual_start < $date + 21 / 24) {
+                                    return 0;
+                                } else {
+                                    return $actual_end - ($date + 1 + $overtid_start);
+                                }
                             }
                         }
-                    }
 
-                    return 0;
+                        return 0;
+                    }
                 }
             }
-        }
+        });
     }
 
     /**
@@ -669,77 +1549,69 @@ HVIS(
      *     formula="",
      *     placeholders={},
      *     overenskomsttekst="Stk. 2
-Arbejde mellem kl. 00.00 - 08.00 betragtes altid som overarbejde. [Se Nat-beregning]
-Stk. 4
-Overarbejde søges godtgjort med frihed (afspadsering), der skal være af samme varighed, som det præsterede overarbejde med tillæg af 50% op rundet til antal hele timer",
+     Arbejde mellem kl. 00.00 - 08.00 betragtes altid som overarbejde. [Se Nat-beregning]
+     Stk. 4
+     Overarbejde søges godtgjort med frihed (afspadsering), der skal være af samme varighed, som det præsterede overarbejde med tillæg af 50% op rundet til antal hele timer",
      *     excelFormula="=
-HVIS(
-    OG(
-        F7 = ""Vagt"";
-        N7 = 0
-    );
-    HVIS(
-        I7 < E7 + Meta!$A$3;
-        HVIS(
-            J7 < E7 + Meta!$A$3;
-            J7 - I7;
-            E7 + Meta!$A$3 - I7
-        );
-        HVIS(
-            J7 < E7 + 1;
-            0;
-            HVIS(
-                J7 < E7 + 1 + Meta!$A$3;
-                J7 - ( E7 + 1 );
-                Meta!$A$3
-            )
-        )
-    );
-    0
-)
-",
+     HVIS(
+     OG(
+     F7 = ""Vagt"";
+     N7 = 0
+     );
+     HVIS(
+     I7 < E7 + Meta!$A$3;
+     HVIS(
+     J7 < E7 + Meta!$A$3;
+     J7 - I7;
+     E7 + Meta!$A$3 - I7
+     );
+     HVIS(
+     J7 < E7 + 1;
+     0;
+     HVIS(
+     J7 < E7 + 1 + Meta!$A$3;
+     J7 - ( E7 + 1 );
+     Meta!$A$3
+     )
+     )
+     );
+     0
+     )
+     ",
      * )
      */
-    private function calculateNat(array &$row)
+    private function calculateNat()
     {
-        $key = self::COLUMN_TEMP_NAT;
+        return $this->calculateColumn(self::COLUMN_TEMP_NAT, function () {
+            $event = $this->get(self::COLUMN_INPUT_EVENT);
+            $ikkePlanlagt7 = $this->calculateIkkePlanlagt7();
+            $actual_start = $this->get(self::COLUMN_INPUT_ACTUAL_START);
+            $actual_end = $this->get(self::COLUMN_INPUT_ACTUAL_END);
+            $date = $this->get(self::COLUMN_INPUT_DATE);
+            $overtid_start = $this->overtidNatFra;
 
-        if (!\array_key_exists($key, $row)) {
-            $calculate = function ($row) {
-                $event = $this->get(self::COLUMN_INPUT_EVENT, $row);
-                $ikkePlanlagt7 = $this->get(self::COLUMN_TEMP_IKKE_PLANLAGT7, $row);
-                $actual_start = $this->get(self::COLUMN_INPUT_ACTUAL_START, $row);
-                $actual_end = $this->get(self::COLUMN_INPUT_ACTUAL_END, $row);
-                $date = $this->get(self::COLUMN_INPUT_DATE, $row);
-                $overtid_start = $this->overtidNatFra;
-
-                if (self::EVENT_VAGT === $event && 0 === $ikkePlanlagt7) {
-                    if ($actual_start < $date + $overtid_start) {
-                        if ($actual_end < $date + $overtid_start) {
-                            return $actual_end - $actual_start;
-                        } else {
-                            return $date + $overtid_start - $actual_start;
-                        }
+            if (self::EVENT_VAGT === $event && 0 === $ikkePlanlagt7) {
+                if ($actual_start < $date + $overtid_start) {
+                    if ($actual_end < $date + $overtid_start) {
+                        return $actual_end - $actual_start;
                     } else {
-                        if ($actual_end < $date + 1) {
-                            return 0;
-                        } else {
-                            if ($actual_end < $date + 1 + $overtid_start) {
-                                return $actual_end - ($date + 1);
-                            } else {
-                                return $overtid_start;
-                            }
-                        }
+                        return $date + $overtid_start - $actual_start;
                     }
                 } else {
-                    return 0;
+                    if ($actual_end < $date + 1) {
+                        return 0;
+                    } else {
+                        if ($actual_end < $date + 1 + $overtid_start) {
+                            return $actual_end - ($date + 1);
+                        } else {
+                            return $overtid_start;
+                        }
+                    }
                 }
-            };
-
-            $row[$key] = $calculate($row);
-        }
-
-        return $row[$key];
+            } else {
+                return 0;
+            }
+        });
     }
 
     /**
@@ -750,49 +1622,35 @@ HVIS(
      *     placeholders={},
      *     overenskomsttekst="",
      *     excelFormula="=
-HVIS(
-    OG(
-        E3 = E2;
-        F2 = ""Løn: Ikke planlagt/7. dag""
-    );
-    J3 - I3;
-    HVIS(
-        OG(
-            E3 = E1;
-            F1 = ""Løn: Ikke planlagt/7. dag""
-        );
-        J3 - I3;
-        HVIS(
-            OG(
-                E3 = E4;
-                F4 = ""Løn: Ikke planlagt/7. dag""
-            );
-            J3 - I3;
-            HVIS(
-                OG(
-                    E3 = E5;
-                    F5 = ""Løn: Ikke planlagt/7. dag""
-                );
-                J3 - I3;
-                0
-            )
-        )
-    )
-)
-",
+     HVIS(
+     OG(E3 = E2; F2 = ""Løn: Ikke planlagt/7. dag"");
+     J3 - I3;
+     HVIS(
+     OG(E3 = E1; F1 = ""Løn: Ikke planlagt/7. dag"");
+     J3 - I3;
+     HVIS(
+     OG(E3 = E4; F4 = ""Løn: Ikke planlagt/7. dag"");
+     J3 - I3;
+     HVIS(
+     OG(E3 = E5; F5 = ""Løn: Ikke planlagt/7. dag"");
+     J3 - I3;
+     0
+     )
+     )
+     )
+     )
+     ",
      * )
      */
-    private function calculateIkkePlanlagt7(array &$rows)
+    private function calculateIkkePlanlagt7()
     {
-        $numberOfRows = \count($rows);
-
-        foreach ($rows as $index => &$row) {
-            $row[self::COLUMN_TEMP_IKKE_PLANLAGT7] =
-                ($index > 0 && $row[self::COLUMN_INPUT_DATE] === $rows[$index - 1][self::COLUMN_INPUT_DATE] && self::EVENT_LØN_OVERTID === $rows[$index - 1][self::COLUMN_INPUT_EVENT])
-                || ($index > 1 && $row[self::COLUMN_INPUT_DATE] === $rows[$index - 2][self::COLUMN_INPUT_DATE] && self::EVENT_LØN_OVERTID === $rows[$index - 2][self::COLUMN_INPUT_EVENT])
-                || ($index < $numberOfRows - 1 && $row[self::COLUMN_INPUT_DATE] === $rows[$index + 1][self::COLUMN_INPUT_DATE] && self::EVENT_LØN_OVERTID === $rows[$index + 1][self::COLUMN_INPUT_EVENT])
-                || ($index < $numberOfRows - 2 && $row[self::COLUMN_INPUT_DATE] === $rows[$index + 2][self::COLUMN_INPUT_DATE] && self::EVENT_LØN_OVERTID === $rows[$index + 2][self::COLUMN_INPUT_EVENT]) ? 1 : 0;
-        }
+        return $this->calculateColumn(self::COLUMN_TEMP_IKKE_PLANLAGT7, function () {
+            return (($this->get(self::COLUMN_INPUT_DATE) === $this->get(self::COLUMN_INPUT_DATE, -2) && self::EVENT_LOEN_IKKE_PLANLAGT_7_DAG === $this->get(self::COLUMN_INPUT_EVENT, -2))
+                    || ($this->get(self::COLUMN_INPUT_DATE) === $this->get(self::COLUMN_INPUT_DATE, -1) && self::EVENT_LOEN_IKKE_PLANLAGT_7_DAG === $this->get(self::COLUMN_INPUT_EVENT, -1))
+                    || ($this->get(self::COLUMN_INPUT_DATE) === $this->get(self::COLUMN_INPUT_DATE, +1) && self::EVENT_LOEN_IKKE_PLANLAGT_7_DAG === $this->get(self::COLUMN_INPUT_EVENT, +1))
+                    || ($this->get(self::COLUMN_INPUT_DATE) === $this->get(self::COLUMN_INPUT_DATE, +2) && self::EVENT_LOEN_IKKE_PLANLAGT_7_DAG === $this->get(self::COLUMN_INPUT_EVENT, +2)))
+                ? $this->get(self::COLUMN_INPUT_ACTUAL_END) - $this->get(self::COLUMN_INPUT_ACTUAL_END) : 0;
+        });
     }
 
     /**
@@ -803,49 +1661,55 @@ HVIS(
      *     placeholders={},
      *     overenskomsttekst="",
      *     excelFormula="=
-HVIS(
-    OG(
-        F3 = ""Vagt"";
-        SUM(
-            L3:N3
-        ) > 0
-    );
-    HVIS(
-        S3 = 0;
-        SUM(
-            L3:N3
-        );
-        HVIS(
-            S3 >=
-            SUM(
-                L3:N3
-            );
-            0;
-            SUM(
-                L3:N3
-            ) - S3
-        )
-    );
-    0
-)
-",
+     HVIS(
+     OG(
+     F3 = ""Vagt"";
+     SUM(
+     L3:N3
+     ) > 0
+     );
+     HVIS(
+     S3 = 0;
+     SUM(
+     L3:N3
+     );
+     HVIS(
+     S3 >=
+     SUM(
+     L3:N3
+     );
+     0;
+     SUM(
+     L3:N3
+     ) - S3
+     )
+     );
+     0
+     )
+     ",
      * )
      */
-    private function calculate50Pct(array $row)
+    private function calculate50Pct()
     {
-        // If($event = ”Vagt” and sum("Overtid”;”Nat”;"Løn: Ikke planlagt/7. dag") > 0) {
-// If($100% = 0) {
-// return sum("Overtid”;”Nat”;"Løn: Ikke planlagt/7. dag")
-// } else {
-// If($100% >= sum("Overtid”;”Nat”;"Løn: Ikke planlagt/7. dag") {
-// return 0
-// } else {
-// return sum("Overtid”;”Nat”;"Løn: Ikke planlagt/7. dag") - $100%
-// }
-// }
-// } else {
-// return 0
-// }
+        return $this->calculateColumn(self::COLUMN_TEMP_50_PCT, function () {
+            $event = $this->get(self::COLUMN_INPUT_EVENT);
+            $sum = $this->calculateOvertid() + $this->calculateNat() + $this->calculateIkkePlanlagt7();
+            $_100Pct = $this->calculate100Pct();
+
+            if (self::EVENT_VAGT === $event && $sum > 0) {
+                if (0 === $_100Pct) {
+                    return $sum;
+                } else {
+                    if ($_100Pct >= $sum) {
+                        return 0;
+                    } else {
+                        return $sum - $_100Pct;
+                    }
+                }
+            } else {
+                return 0;
+            }
+        });
     }
 
     /**
@@ -856,25 +1720,31 @@ HVIS(
      *     placeholders={},
      *     overenskomsttekst="",
      *     excelFormula="=
-HVIS(
-    OG(
-        F3 = ""Vagt"";
-        K3 <> 0;
-        K3 > Meta!$B$2 + 0,01
-    );
-    K3 - Meta!$B$2;
-    0
-)
-",
+     HVIS(
+     OG(
+     F3 = ""Vagt"";
+     K3 <> 0;
+     K3 > Meta!$B$2 + 0,01
+     );
+     K3 - Meta!$B$2;
+     0
+     )
+     ",
      * )
      */
-    private function calculate13Timer(array $row)
+    private function calculate13Timer()
     {
-        if (self::EVENT_VAGT === $event and 0 !== $timer and $timer > $_13_timer) {
-            return $timer - $_13_timer;
-        } else {
-            return 0;
-        }
+        return $this->calculateColumn(self::COLUMN_TEMP_13_TIMER, function () {
+            $event = $this->get(self::COLUMN_INPUT_EVENT);
+            $timer = $this->calculateTimer(); // K
+            $_13_timer = $this->_13_timer;
+
+            if (self::EVENT_VAGT === $event and 0 !== $timer and $timer > $_13_timer) {
+                return $timer - $_13_timer;
+            } else {
+                return 0;
+            }
+        });
     }
 
     /**
@@ -885,61 +1755,61 @@ HVIS(
      *     placeholders={},
      *     overenskomsttekst="",
      *     excelFormula="=
-HVIS(
-    ELLER(
-        F3 <> ""Vagt"";
-        FORSKYDNING(
-            E3;
-            -1;
-            0
-        ) <> E3 - 1
-    );
-    0;
-    HVIS(
-        FORSKYDNING(
-            F3;
-            -1;
-            0
-        ) <> ""Vagt"";
-        HVIS (            OG(
-                FORSKYDNING(
-                    E3;
-                    -2;
-                    0
-                ) <> E3 - 1;
-                FORSKYDNING(
-                    F3;
-                    -2;
-                    0
-                ) <> ""Vagt""
-            ) ; 0 ;
-            HVIS(
-                I3 - J1 < _11_timer;
-                _11_timer - ( Data!I3 - Data!J1 );
-                0
-            ) );
-        HVIS(
-            I3 - J2 < _11_timer;
-            _11_timer - ( Data!I3 - Data!J2 );
-            0
-        )
-    )
-)
-",
+     HVIS(
+     ELLER(
+     F3 <> ""Vagt"";
+     FORSKYDNING(
+     E3;
+     -1;
+     0
+     ) <> E3 - 1
+     );
+     0;
+     HVIS(
+     FORSKYDNING(
+     F3;
+     -1;
+     0
+     ) <> ""Vagt"";
+     HVIS (            OG(
+     FORSKYDNING(
+     E3;
+     -2;
+     0
+     ) <> E3 - 1;
+     FORSKYDNING(
+     F3;
+     -2;
+     0
+     ) <> ""Vagt""
+     ) ; 0 ;
+     HVIS(
+     I3 - J1 < _11_timer;
+     _11_timer - ( Data!I3 - Data!J1 );
+     0
+     ) );
+     HVIS(
+     I3 - J2 < _11_timer;
+     _11_timer - ( Data!I3 - Data!J2 );
+     0
+     )
+     )
+     )
+     ",
      * )
      */
-    private function calculate11Timer(array $rows)
+    private function calculate11Timer()
     {
-        $calculate = function ($row, $prevRow, $prevPrevRow) {
-            $event = $this->get(self::COLUMN_INPUT_EVENT, $row);
-            $date = $this->get(self::COLUMN_INPUT_DATE, $row);
-            $date_prev = $prevRow[self::COLUMN_INPUT_DATE] ?? null;
-            $date_prev_prev = $prevPrevRow[self::COLUMN_INPUT_DATE] ?? null;
-            $event_prev = $prevRow[self::COLUMN_INPUT_EVENT] ?? null;
-            $event_prev_prev = $prevPrevRow[self::COLUMN_INPUT_EVENT] ?? null;
-            $actual_start = $this->get(self::COLUMN_INPUT_ACTUAL_START, $row);
-            $actual_end_prev = $prevRow[self::COLUMN_INPUT_ACTUAL_END] ?? null;
-            $actual_end_prev_prev = $prevPrevRow[self::COLUMN_INPUT_ACTUAL_END] ?? null;
+        $calculate = function () {
+            $event = $this->get(self::COLUMN_INPUT_EVENT);
+            $date = $this->get(self::COLUMN_INPUT_DATE);
+            $date_prev = $this->get(self::COLUMN_INPUT_DATE, -1);
+            $date_prev_prev = $this->get(self::COLUMN_INPUT_DATE, -2);
+            $event_prev = $this->get(self::COLUMN_INPUT_EVENT, -1);
+            $event_prev_prev = $this->get(self::COLUMN_INPUT_EVENT, -2);
+            $actual_start = $this->get(self::COLUMN_INPUT_ACTUAL_START);
+            $actual_end_prev = $this->get(self::COLUMN_INPUT_ACTUAL_END, -1);
+            $actual_end_prev_prev = $this->get(self::COLUMN_INPUT_ACTUAL_END, -2);
             $_11_timer = $this->_11_timer;
 
             if (self::EVENT_VAGT !== $event || $date_prev !== $date - 1) {
@@ -965,10 +1835,7 @@ HVIS(
             }
         };
 
-        $key = self::COLUMN_TEMP_11_TIMER;
-        foreach ($rows as $index => &$row) {
-            $row[$key] = $calculate($row, $rows[$index - 1] ?? null, $rows[$index - 2] ?? null);
-        }
+        $this->set(self::COLUMN_TEMP_11_TIMER, $calculate());
     }
 
     /**
@@ -979,58 +1846,53 @@ HVIS(
      *     placeholders={},
      *     overenskomsttekst="",
      *     excelFormula="=
-HVIS(
-    OG(
-        E3 - 1 =
-        FORSKYDNING(
-            E3;
-            -1;
-            0
-        );
-        P2 > 0
-    );
-    P2;
-    HVIS(
-        OG(
-            E3 - 1 =
-            FORSKYDNING(
-                E3;
-                -2;
-                0
-            );
-            P1 > 0
-        );
-        P1;
-        """"
-    )
-)
-",
+     HVIS(
+     OG(
+     E3 - 1 =
+     FORSKYDNING(
+     E3;
+     -1;
+     0
+     );
+     P2 > 0
+     );
+     P2;
+     HVIS(
+     OG(
+     E3 - 1 =
+     FORSKYDNING(
+     E3;
+     -2;
+     0
+     );
+     P1 > 0
+     );
+     P1;
+     """"
+     )
+     )
+     ",
      * )
      */
-    private function calculateDagenFør(array $row)
+    private function calculateDagenFoer()
     {
-        $key = self::COLUMN_TEMP_DAGEN_FØR;
+        return $this->calculateColumn(self::COLUMN_TEMP_DAGEN_FOER, function () {
+            $date = $this->get(self::COLUMN_INPUT_DATE);
+            $date_prev = $this->get(self::COLUMN_INPUT_DATE, -1);
+            $date_prev_prev = $this->get(self::COLUMN_INPUT_DATE, -2);
+            $_13_timer_prev = $this->get(self::COLUMN_TEMP_13_TIMER, -1);
+            $_13_timer_prev_prev = $this->get(self::COLUMN_TEMP_13_TIMER, -2);
 
-        if (!\array_key_exists($key, $row)) {
-            $calculate = function ($row) {
-                $_13_timer_prev = $rows[$index - 1][self::COLUMN_TEMP_13_TIMER] ?? null;
-                $_13_timer_prev_prev = $rows[$index - 2][self::COLUMN_TEMP_13_TIMER] ?? null;
-
-                if ($date - 1 === $date_prev && $_13_timer_prev > 0) {
-                    return $_13_timer_prev;
+            if ($date - 1 === $date_prev && $_13_timer_prev > 0) {
+                return $_13_timer_prev;
+            } else {
+                if ($date - 1 === $date_prev_prev && $_13_timer_prev_prev > 0) {
+                    return $_13_timer_prev_prev;
                 } else {
-                    if ($date - 1 === $date_prev_prev && $_13_timer_prev_prev > 0) {
-                        return $_13_timer_prev_prev;
-                    } else {
-                        return '';
-                    }
+                    return '';
                 }
-            };
-
-            $row[$key] = $calculate($row);
-        }
-
-        return $row[$key];
+            }
+        });
     }
 
     /**
@@ -1041,66 +1903,62 @@ HVIS(
      *     placeholders={},
      *     overenskomsttekst="",
      *     excelFormula="=
-HVIS(
-    OG(
-        P3 = 0;
-        Q3 = 0
-    );
-    0;
-    HVIS(
-        Q3 = 0;
-        P3;
-        HVIS(
-            R3 = 0;
-            HVIS(
-                P3 = 0;
-                Q3;
-                P3 + Q3
-            );
-            HVIS(
-                R3 >= Q3;
-                P3;
-                Q3 - R3
-            )
-        )
-    )
-)
-",
+     HVIS(
+     OG(
+     P3 = 0;
+     Q3 = 0
+     );
+     0;
+     HVIS(
+     Q3 = 0;
+     P3;
+     HVIS(
+     R3 = 0;
+     HVIS(
+     P3 = 0;
+     Q3;
+     P3 + Q3
+     );
+     HVIS(
+     R3 >= Q3;
+     P3;
+     Q3 - R3
+     )
+     )
+     )
+     )
+     ",
      * )
      */
-    private function calculate100Pct(array $row)
+    private function calculate100Pct()
     {
-        $key = self::COLUMN_TEMP_100_PCT;
+        return $this->calculateColumn(self::COLUMN_TEMP_100_PCT, function () {
+            $_13Timer = $this->calculate13Timer();
+            $_11Timer = $this->calculate11Timer();
+            $dagenFoer = $this->calculateDagenFoer();
 
-        if (!\array_key_exists($key, $row)) {
-            $calculate = function ($row) {
-                if ($_13_timer and 0 === $_11_timer) {
-                    return 0;
+            if (0 === $_13Timer and 0 === $_11Timer) {
+                return 0;
+            } else {
+                if (0 === $_11Timer) {
+                    return $_13Timer;
                 } else {
-                    if (0 === $_11_timer) {
-                        return $_13_timer;
-                    } else {
-                        if (0 === $dagen_før) {
-                            if (0 === $_13_timer) {
-                                return $_11_timer;
-                            } else {
-                                return $_13_timer + $_11_timer;
-                            }
+                    if (0 === $dagenFoer) {
+                        if (0 === $_13Timer) {
+                            return $_11Timer;
                         } else {
-                            if ($dagen_før >= $_11_timer) {
-                                return $_13_timer;
-                            } else {
-                                return $_11_timer - $dagen_før;
-                            }
+                            return $_13Timer + $_11Timer;
+                        }
+                    } else {
+                        if ($dagenFoer >= $_11Timer) {
+                            return $_13Timer;
+                        } else {
+                            return $_11Timer - $dagenFoer;
                         }
                     }
                 }
-            };
-
-            $row[$key] = $calculate($row);
-        }
-
-        return $row[$key];
+            }
+        });
     }
 
     /**
@@ -1111,42 +1969,133 @@ HVIS(
      *     placeholders={},
      *     overenskomsttekst="",
      *     excelFormula="=
-TÆL.HVIS(
-    P21:Q21;
-    "">0""
-)
-",
+     TÆL.HVIS(
+     P21:Q21;
+     "">0""
+     )
+     ",
      * )
      */
-    private function calculateAntalHviletidsbrud(array $row)
+    private function calculateAntalHviletidsbrud()
     {
-        $key = self::COLUMN_TEMP_ANTAL_HVILETIDSBRUD;
+        return $this->calculateColumn(self::COLUMN_TEMP_ANTAL_HVILETIDSBRUD, function () {
+            $_13_timer = $this->calculate13Timer();
+            $_11_timer = $this->calculate11Timer();
 
-        if (!\array_key_exists($key, $row)) {
-            $calculate = function ($row) {
-                $_13_timer = $this->get(self::COLUMN_TEMP_13_TIMER);
-                $_11_timer = $this->get(self::COLUMN_TEMP_11_TIMER);
+            return \count(array_filter([$_13_timer, $_11_timer], function ($value) {
+                return $value > 0;
+            }));
+        });
+    }
 
-                return \count(array_filter([$_13_timer, $_11_timer], function ($value) {
-                    return $value > 0;
-                }));
-            };
+    /**
+     * @var array
+     */
+    private $rows;
 
-            $row[$key] = $calculate($row);
+    /**
+     * @var int
+     */
+    private $rowsIndex;
+
+    private function setRows(array &$rows)
+    {
+        $this->rows = &$rows;
+        $this->rowsIndex = (null === $rows || empty($rows)) ? null : -1;
+    }
+
+    private function nextRow()
+    {
+        if (!isset($this->rows)) {
+            throw new \RuntimeException('No current rows');
+        }
+        if ($this->rowsIndex < \count($this->rows) - 1) {
+            ++$this->rowsIndex;
+
+            return true;
         }
 
-        return $row[$key];
+        unset($this->rows);
+        $this->rowsIndex = null;
+
+        return false;
     }
 
     /**
      * Get a keyed value from row. Throw exception if key is not set.
      */
-    private function get($key, array $row, bool $requireValue = true)
+    private function get(string $key, int $offset = 0)
     {
-        if ($requireValue && !\array_key_exists($key, $row)) {
-            throw new \RuntimeException(sprintf('Invalid row key: %s', $key));
+        if (!isset($this->rows)) {
+            throw new \RuntimeException('No current rows');
+        }
+        if (!\array_key_exists($this->rowsIndex, $this->rows)) {
+            throw new \RuntimeException('No current row');
+        }
+        if (0 === $offset) {
+            $row = $this->rows[$this->rowsIndex];
+            // Require value in current row.
+            if (!\array_key_exists($key, $row)) {
+                throw new \RuntimeException(sprintf('Invalid row key: %s', $key));
+            }
+
+            return $row[$key];
+        } else {
+            return $this->rows[$this->rowsIndex + $offset][$key] ?? null;
+        }
+    }
+
+    /**
+     * Check if column is set in current row.
+     */
+    private function isSet(string $key)
+    {
+        if (null === $this->rows) {
+            throw new \RuntimeException('No current rows');
+        }
+        if (!\array_key_exists($this->rowsIndex, $this->rows)) {
+            throw new \RuntimeException('No current row');
         }
 
-        return $row[$key];
+        return \array_key_exists($key, $this->rows[$this->rowsIndex]);
+    }
+
+    /**
+     * Set value in current row.
+     */
+    private function set(string $key, $value)
+    {
+        $this->rows[$this->rowsIndex][$key] = $value;
+    }
+
+    private function testCheckRows(array &$rows)
+    {
+        foreach ($rows as $index => $row) {
+            foreach ([
+                self::COLUMN_TEMP_TIMER => self::COLUMN_TEST_REFERENCE_TIMER,
+            ] as $calculated => $reference) {
+                if (!\array_key_exists($calculated, $row) || !\array_key_exists($reference, $row) || $row[$calculated] !== $row[$reference]) {
+                    header('content-type: text/plain');
+                    echo var_export([
+                        $calculated => \array_key_exists($calculated, $row) ? $row[$calculated] : '👻',
+                        $reference => \array_key_exists($reference, $row) ? $row[$reference] : '👻',
+                        'row['.$index.']' => $row,
+                    ], true);
+                    die(__FILE__.':'.__LINE__.':'.__METHOD__);
+                }
+            }
+        }
+    }
+
+    /**
+     * Calculate and set column in a row.
+     */
+    private function calculateColumn(string $column, callable $calculate)
+    {
+        if (!$this->isSet($column)) {
+            $this->set($column, $calculate());
+        }
+
+        return $this->get($column);
     }
 }
