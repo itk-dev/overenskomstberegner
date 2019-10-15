@@ -35,10 +35,24 @@ easy_admin:
 
         User:
             class: App\Entity\User
+            controller: ItkDev\UserManagementBundle\Controller\UserController
 
             list:
                 fields:
-                    - property: username
+                    - property: email
                     - property: createdBy
                     - property: createdAt
                     - property: updatedAt
+
+            new:
+                fields:
+                    - property: email
+                    - property: roles
+                      type: ItkDev\UserManagementBundle\Form\Type\UserRolesType
+
+            edit:
+                fields:
+                    - property: email
+                    - property: enabled
+                    - property: roles
+                      type: ItkDev\UserManagementBundle\Form\Type\UserRolesType

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f7284ec4eb68bd575a7f2e3a9a03becb",
+    "content-hash": "9f9fc22aa7d2782dbe31fc8fa2141195",
     "packages": [
         {
             "name": "behat/transliterator",
@@ -1608,16 +1608,16 @@
         },
         {
             "name": "itk-dev/user-management-bundle",
-            "version": "1.1.1",
+            "version": "1.3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/itk-dev/user-management-bundle.git",
-                "reference": "f091c72ea1b817e51c536c13daaf463a78eac88a"
+                "reference": "3576155d8144e1059d8b883837b7dce2fe17c09c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/itk-dev/user-management-bundle/zipball/f091c72ea1b817e51c536c13daaf463a78eac88a",
-                "reference": "f091c72ea1b817e51c536c13daaf463a78eac88a",
+                "url": "https://api.github.com/repos/itk-dev/user-management-bundle/zipball/3576155d8144e1059d8b883837b7dce2fe17c09c",
+                "reference": "3576155d8144e1059d8b883837b7dce2fe17c09c",
                 "shasum": ""
             },
             "require": {
@@ -1664,10 +1664,10 @@
             ],
             "description": "User management made easier",
             "support": {
-                "source": "https://github.com/itk-dev/user-management-bundle/tree/1.1.1",
+                "source": "https://github.com/itk-dev/user-management-bundle/tree/1.3.0",
                 "issues": "https://github.com/itk-dev/user-management-bundle/issues"
             },
-            "time": "2019-10-15T11:01:51+00:00"
+            "time": "2019-10-15T14:21:51+00:00"
         },
         {
             "name": "jdorn/sql-formatter",
