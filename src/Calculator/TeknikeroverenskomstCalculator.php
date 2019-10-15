@@ -10,6 +10,8 @@
 
 namespace App\Calculator;
 
+use DateTimeImmutable;
+use DateTimeInterface;
 use App\Annotation\Calculation;
 use App\Annotation\Calculation\Placeholder;
 use App\Annotation\Calculator;
@@ -397,9 +399,6 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
 
             // Compute non-zero sums.
             $result = array_filter([
-                self::COLUMN_INPUT_NAME => $row[self::COLUMN_INPUT_NAME],
-                self::COLUMN_INPUT_EMPLOYEE_NUMBER => $row[self::COLUMN_INPUT_EMPLOYEE_NUMBER],
-
                 self::COLUMN_SUM_P_5571 => array_sum(array_column($result, self::COLUMN_OUTPUT_P_5571)),
                 self::COLUMN_SUM_P_6625 => array_sum(array_column($result, self::COLUMN_OUTPUT_P_6625)),
                 self::COLUMN_SUM_P_MILJOE => array_sum(array_column($result, self::COLUMN_OUTPUT_P_MILJOE)),
@@ -413,12 +412,15 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
                 self::COLUMN_SUM_P_ARBEJDSDAGE => array_sum(array_column($result, self::COLUMN_OUTPUT_ARBEJDSDAGE)),
             ]);
 
-            $this->result[$employeeNumber] = $result;
-        }
+            if (!empty($result)) {
+                $result = [
+                    self::COLUMN_INPUT_NAME => $row[self::COLUMN_INPUT_NAME],
+                    self::COLUMN_INPUT_EMPLOYEE_NUMBER => $row[self::COLUMN_INPUT_EMPLOYEE_NUMBER],
+                ] + $result;
 
-        header('content-type: text/plain');
-        echo var_export($this->result, true);
-        die(__FILE__.':'.__LINE__.':'.__METHOD__);
+                $this->result[$employeeNumber] = $result;
+            }
+        }
 
         if ($this->testMode) {
             foreach ($this->result as $rows) {
@@ -448,43 +450,23 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
         // Sum af P Antal
         // Sum af P Normal
 
-        foreach ($this->result as $employeeNumber => $rows) {
-            foreach ($rows as $row) {
-                $row = [
-                    self::COLUMN_INPUT_EMPLOYEE_NUMBER => $row[self::COLUMN_INPUT_EMPLOYEE_NUMBER],
-                    self::COLUMN_INPUT_CONTRACT => $row[self::COLUMN_INPUT_CONTRACT],
-                    self::COLUMN_INPUT_DATE => $this->formatExcelDate($row[self::COLUMN_INPUT_DATE]),
-                    self::COLUMN_INPUT_EVENT => $row[self::COLUMN_INPUT_EVENT],
-                    self::COLUMN_INPUT_PLANNED_START => $this->formatExcelTime($row[self::COLUMN_INPUT_PLANNED_START]),
-                    self::COLUMN_INPUT_PLANNED_END => $this->formatExcelTime($row[self::COLUMN_INPUT_PLANNED_END]),
-                    self::COLUMN_INPUT_ACTUAL_START => $this->formatExcelTime($row[self::COLUMN_INPUT_ACTUAL_START]),
-                    self::COLUMN_INPUT_ACTUAL_END => $this->formatExcelTime($row[self::COLUMN_INPUT_ACTUAL_END]),
-
-                    self::COLUMN_TEMP_TIMER => $this->formatExcelTime($row[self::COLUMN_TEMP_TIMER]),
-                    self::COLUMN_TEMP_OVERTID => $this->formatExcelTime($row[self::COLUMN_TEMP_OVERTID]),
-                    self::COLUMN_TEMP_NAT => $this->formatExcelTime($row[self::COLUMN_TEMP_NAT]),
-
-                    self::COLUMN_TEMP_IS_OVERTIME => $row[self::COLUMN_TEMP_IS_OVERTIME],
-                    self::COLUMN_TEMP_IKKE_PLANLAGT7 => $row[self::COLUMN_TEMP_IKKE_PLANLAGT7],
-                ];
-
-                if (1 === $rowIndex) {
-                    $this->writeCells($sheet, 1, $rowIndex, array_keys($row));
-                    ++$rowIndex;
-                }
-                $this->writeCells($sheet, 1, $rowIndex, $row);
-                ++$rowIndex;
-            }
-            break;
-        }
-
-        return $result;
-
         $result = new Spreadsheet();
         $sheet = $result->getActiveSheet();
         $rowIndex = 1;
         $this->writeCell($sheet, 1, 1, $this->resultTitle, 5);
         ++$rowIndex;
+
+        foreach ($this->result as $employeeNumber => $row) {
+            $columnIndex = 1;
+            foreach ($row as $key => $value) {
+                $sheet->setCellValueByColumnAndRow($columnIndex, $rowIndex, $key);
+                $sheet->setCellValueByColumnAndRow($columnIndex + 1, $rowIndex, $value);
+                $columnIndex += 2;
+            }
+            ++$rowIndex;
+        }
+
+        return $result;
 
         $this->writeCells($sheet, 1, $rowIndex, [
             self::COLUMN_OUTPUT_EMPLOYEE_NUMBER,
@@ -1057,25 +1039,9 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
         return $this->calculateColumn(self::COLUMN_OUTPUT_P_50_PCT, function () {
             $contract = $this->get(self::COLUMN_INPUT_CONTRACT);
             $date = $this->get(self::COLUMN_INPUT_DATE);
-            if (true
-// @TODO: What's going on here?! Is this just start/end date?
-//                     HLOOKUP(
-//                         $this->getNormperiode($contract),
-//                         Periode,
-//                         2,
-//                         FALSE
-//                     ) <= $date
+            $normperiode = $this->getNormperiode($contract);
 
-// &&
-
-//                     $date <=
-//                     HLOOKUP(
-//                         $this->getNormperiode($contract),
-//                         Periode,
-//                         3,
-//                         FALSE
-//                     )
-                ) {
+            if ($normperiode[0] <= $date && $date <= $normperiode[1]) {
                 return $this->calculate50Pct() * 24;
             } else {
                 return null;
@@ -1097,25 +1063,9 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
         return $this->calculateColumn(self::COLUMN_OUTPUT_P_100_PCT, function () {
             $contract = $this->get(self::COLUMN_INPUT_CONTRACT);
             $date = $this->get(self::COLUMN_INPUT_DATE);
-            if (true
-// @TODO: What's going on here?! Is this just start/end date?
-//                     HLOOKUP(
-//                         $this->getNormperiode($contract),
-//                         Periode,
-//                         2,
-//                         FALSE
-//                     ) <= $date
+            $normperiode = $this->getNormperiode($contract);
 
-// &&
-
-//                     $date <=
-//                     HLOOKUP(
-//                         $this->getNormperiode($contract),
-//                         Periode,
-//                         3,
-//                         FALSE
-//                     )
-                ) {
+            if ($normperiode[0] <= $date && $date <= $normperiode[1]) {
                 return $this->calculate100Pct() * 24;
             } else {
                 return null;
@@ -1189,25 +1139,11 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
     private function calculatePNormal()
     {
         return $this->calculateColumn(self::COLUMN_OUTPUT_P_NORMAL, function () {
-            if (true
-                // @TODO: What's going on here?! Is this just start/end date?
-                //                     HLOOKUP(
-                //                         $this->getNormperiode($contract),
-                //                         Periode,
-                //                         2,
-                //                         FALSE
-                //                     ) <= $date
+            $date = $this->get(self::COLUMN_INPUT_DATE);
+            $contract = $this->get(self::COLUMN_INPUT_CONTRACT);
+            $normperiode = $this->getNormperiode($contract);
 
-                // &&
-
-                //                     $date <=
-                //                     HLOOKUP(
-                //                         $this->getNormperiode($contract),
-                //                         Periode,
-                //                         3,
-                //                         FALSE
-                //                     )
-            ) {
+            if ($normperiode[0] <= $date && $date <= $normperiode[1]) {
                 $timer = $this->calculateTimer();
                 $p50Pct = $this->calculateP50Pct();
                 $p100Pct = $this->calculateP100Pct();
@@ -1353,17 +1289,68 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
 
     private $kontraktnormerItems;
 
-    private function getUgenorm($contract)
+    private function kontraktnormer(string $contract = null)
     {
         if (null === $this->kontraktnormerItems) {
             $this->kontraktnormerItems = array_column(array_map('str_getcsv', array_filter(array_map('trim', explode(PHP_EOL, $this->kontraktnormer)))), null, 0);
         }
 
-        if (!isset($this->kontraktnormerItems[$contract])) {
-            throw new \RuntimeException(sprintf('Invalid contract: %s', $contract));
+        if (null !== $contract) {
+            if (!isset($this->kontraktnormerItems[$contract])) {
+                throw new \RuntimeException(sprintf('Invalid contract: %s', $contract));
+            }
+
+            return $this->kontraktnormerItems[$contract];
         }
 
-        return $this->kontraktnormerItems[$contract][1];
+        return $this->kontraktnormerItems;
+    }
+
+    private function getUgenorm($contract)
+    {
+        $norm = $this->kontraktnormer($contract);
+
+        return (int) $norm[1];
+    }
+
+    /**
+     * @return \DateTimeInterface[]
+     */
+    private function getNormperiode($contract, $asExcelDates = true)
+    {
+        $calculate = function ($period) {
+            switch ($period) {
+                case 1:
+                    $offset = $this->startDate->format(DateTimeInterface::ATOM);
+
+                    return [
+                        new DateTimeImmutable($offset.' first day of month'),
+                        new DateTimeImmutable($offset.' last day of month'),
+                    ];
+                case 3:
+                    // Get quarter containing start date.
+                    $month = (int) $this->startDate->format('n');
+                    $startQuarterMonth = 3 * (int) floor(($month - 1) / 3) + 1;
+
+                    return [
+                        new DateTimeImmutable($this->startDate->format(sprintf('Y-%02d-d\TH:i:sP', $startQuarterMonth)).' first day of month'),
+                        new DateTimeImmutable($this->startDate->format(sprintf('Y-%02d-d\TH:i:sP', $startQuarterMonth + 2)).' last day of month'),
+                    ];
+
+                default:
+                    throw new \RuntimeException(sprintf('Invalid norm period: %d', $period));
+            }
+        };
+
+        // @TODO: What to do if contract is not set?
+        $norm = $this->kontraktnormer($contract ?? '');
+        $result = $calculate((int) $norm[2]);
+
+        if ($asExcelDates) {
+            $result = array_map([$this, 'dateTime2Excel'], $result);
+        }
+
+        return $result;
     }
 
     /**
