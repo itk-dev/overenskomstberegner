@@ -20,6 +20,7 @@ use Symfony\Component\Form\Extension\Core\Type\FormType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 class CalculationController extends EasyAdminController
 {
@@ -29,6 +30,15 @@ class CalculationController extends EasyAdminController
     public function __construct(Manager $manager)
     {
         $this->manager = $manager;
+    }
+
+    protected function editAction()
+    {
+        if (!$this->isGranted('ROLE_CALCULATION_ADMIN')) {
+            throw new AccessDeniedException();
+        }
+
+        return parent::editAction();
     }
 
     public function showAction(): RedirectResponse

@@ -1,0 +1,3 @@
+{% if not action.permission is defined or is_granted(action.permission) %}
+    {% include '@!EasyAdmin/default/action.html.twig' %}
+{% endif %}

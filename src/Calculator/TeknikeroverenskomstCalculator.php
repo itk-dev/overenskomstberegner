@@ -141,14 +141,14 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
     private $kontraktnormer;
 
     /**
-     * @Argument(type="date", name="Start time", description="Start time", required=true),
+     * @Argument(type="date", name="Start time", description="Start time", required=true, default="first day of this month"),
      *
      * @var DateTime
      */
     private $startDate;
 
     /**
-     * @Argument(type="date", name="End time", description="End time", required=true),
+     * @Argument(type="date", name="End time", description="End time", required=true, default="last day of this month"),
      *
      * @var DateTime
      */

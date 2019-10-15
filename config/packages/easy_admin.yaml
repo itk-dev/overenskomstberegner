@@ -7,6 +7,18 @@ easy_admin:
                 - 'build/runtime.js'
                 - 'build/easy_admin.js'
 
+
+        menu:
+            - entity: Calculation
+            - entity: User
+              permission: ROLE_USER_ADMIN
+
+    edit:
+        actions: ['-delete']
+
+    list:
+        actions: ['search', '-delete']
+
     entities:
         Calculation:
             class: App\Entity\Calculation
@@ -14,15 +26,18 @@ easy_admin:
 
             list:
                 actions:
-                    - name: show
                     - name: 'run'
                       label: 'Calculate'
+                    - name: show
+                    - name: edit
+                      permission: ROLE_CALCULATION_ADMIN
 
                 fields:
                     - property: name
                     - property: calculator
-                    - property: createdBy
+                    # - property: createdBy
                     - property: createdAt
+                    # - property: updatedBy
                     - property: updatedAt
 
             form:
@@ -38,10 +53,15 @@ easy_admin:
             controller: ItkDev\UserManagementBundle\Controller\UserController
 
             list:
+                actions:
+                    - name: 'impersonate'
+                      permission: ROLE_ALLOWED_TO_SWITCH
+
                 fields:
                     - property: email
-                    - property: createdBy
+                    # - property: createdBy
                     - property: createdAt
+                    # - property: updatedBy
                     - property: updatedAt
 
             new:

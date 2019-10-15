@@ -163,7 +163,7 @@ class CalculateController extends AbstractController
                 'label' => $argument['name'] ?? $name,
                 'required' => $argument['required'],
                 'help' => $argument['description'] ?? null,
-                'data' => $argument['default'] ?? null,
+                'data' => $this->getData($argument),
             ]);
         }
 
@@ -190,5 +190,16 @@ class CalculateController extends AbstractController
         }
 
         return TextType::class;
+    }
+
+    private function getData($argument) {
+        $data = $argument['default'] ?? null;
+
+        switch ($argument['type']) {
+            case 'date':
+                return new \DateTimeImmutable($data);
+        }
+
+        return $data;
     }
 }
