@@ -1,0 +1,22 @@
+{
+  "entrypoints": {
+    "easy_admin": {
+      "js": [
+        "/build/runtime.f1cd8733.js",
+        "/build/easy_admin.45c5db19.js"
+      ],
+      "css": [
+        "/build/easy_admin.4ae1ab66.css"
+      ]
+    },
+    "calculate": {
+      "js": [
+        "/build/runtime.f1cd8733.js",
+        "/build/calculate.49c733f9.js"
+      ],
+      "css": [
+        "/build/calculate.aa0b4d0a.css"
+      ]
+    }
+  }
+}

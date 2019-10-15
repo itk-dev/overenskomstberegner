@@ -118,9 +118,9 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
     private $miljoe_slut;
 
     /**
-     * @Setting(type="int", name="Timeløn"),
+     * @Setting(type="time", name="Timeløn"),
      *
-     * @var int
+     * @var DateTime
      */
     private $timeloen;
 
@@ -379,6 +379,7 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
         $this->miljoe_slut = $this->time2Excel($this->miljoe_slut);
         $this->_11_timer = $this->time2Excel(new DateTime('@0 11:00'));
         $this->_13_timer = $this->time2Excel(new DateTime('@0 13:00'));
+        $this->timeloen = $this->time2Excel($this->timeloen);
 
         $startDate = $this->dateTime2Excel($this->startDate);
         $endDate = $this->dateTime2Excel($this->endDate) + 1;
@@ -556,7 +557,7 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
      )
      ),
      IF(
-     F3 = "Vagt",
+     F3 = ""Vagt"",
      IF(
      WEEKDAY(
      E3,
@@ -722,7 +723,7 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
      *     overenskomsttekst="",
      *     excelFormula="
      =IF(
-     Z3 = "X",
+     Z3 = ""X"",
      IF(
      OR(
      J3 < E3 + 1,
@@ -734,7 +735,7 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
      Z3,
      1,
      0
-     ) = "X"
+     ) = ""X""
      ),
      J3 - I3,
      IF(
@@ -751,7 +752,7 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
      )
      ),
      IF(
-     F3 = "Vagt",
+     F3 = ""Vagt"",
      IF(
      OR(
      WEEKDAY(

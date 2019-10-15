@@ -1,0 +1,7 @@
+App\Entity\User:
+    super-admin:
+        enabled: true
+        username: super-admin@example.com
+        email: super-admin@example.com
+        plainPassword: password
+        roles: [ROLE_SUPER_ADMIN]
