@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2">
+  <file source-language="en" target-language="da" datatype="plaintext" original="file.ext">
+    <header>
+      <tool tool-id="symfony" tool-name="Symfony"/>
+    </header>
+    <body>
+      <trans-unit id="ZouARV." resname="Calculator">
+        <source>Calculator</source>
+        <target state="translated">Beregner</target>
+      </trans-unit>
+      <trans-unit id="3NHVIj9" resname="Name">
+        <source>Name</source>
+        <target state="translated">Navn</target>
+      </trans-unit>
+      <trans-unit id="jjeVPSP" resname="Value">
+        <source>Value</source>
+        <target state="translated">Værdi</target>
+      </trans-unit>
+      <trans-unit id="CYuvldh" resname="Formulas">
+        <source>Formulas</source>
+        <target state="translated">Formler</target>
+      </trans-unit>
+      <trans-unit id="Um4Ah8w" resname="Description">
+        <source>Description</source>
+        <target state="translated">Beskrivelse</target>
+      </trans-unit>
+      <trans-unit id="Hc.l6_R" resname="Overenskomsttekst">
+        <source>Overenskomsttekst</source>
+        <target state="translated">Overenskomsttekst</target>
+      </trans-unit>
+      <trans-unit id="9Sd4QXY" resname="Excel formula">
+        <source>Excel formula</source>
+        <target state="translated">Excelformel</target>
+      </trans-unit>
+      <trans-unit id="0AvU7DL" resname="Formula">
+        <source>Formula</source>
+        <target state="translated">Formel</target>
+      </trans-unit>
+      <trans-unit id="MksTT1f" resname="Preview">
+        <source>Preview</source>
+        <target state="translated">Forhåndsvisning</target>
+      </trans-unit>
+      <trans-unit id="AlGU_6c" resname="Calculation">
+        <source>Calculation</source>
+        <target state="translated">Beregning</target>
+      </trans-unit>
+      <trans-unit id="tRLZfny" resname="User">
+        <source>User</source>
+        <target state="translated">Bruger</target>
+      </trans-unit>
+      <trans-unit id="d1tb_WR" resname="Created at">
+        <source>Created at</source>
+        <target state="translated">Oprettet</target>
+      </trans-unit>
+      <trans-unit id="PCEFPeg" resname="Updated at">
+        <source>Updated at</source>
+        <target state="translated">Opdateret</target>
+      </trans-unit>
+      <trans-unit id="ISHMFa_" resname="Calculate">
+        <source>Calculate</source>
+        <target state="translated">Beregn</target>
+      </trans-unit>
+      <trans-unit id="lpzL089" resname="Email">
+        <source>Email</source>
+        <target state="translated">E-mail</target>
+      </trans-unit>
+      <trans-unit id="94V33HR" resname="Impersonate">
+        <source>Impersonate</source>
+        <target state="translated">Log ind som</target>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>
