@@ -126,11 +126,10 @@ class CalculateController extends AbstractController
 
                     return $response;
                 } catch (Exception $exception) {
-                    throw $exception;
-                    $this->addFlash('danger', $exception->getMessage());
+                    return $this->render('calculation/exception.html.twig', [
+                        'exception' => $exception,
+                    ]);
                 }
-            } else {
-                $this->addFlash('danger', __METHOD__);
             }
         }
 

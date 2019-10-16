@@ -1,0 +1,11 @@
+{% extends '@EasyAdmin/default/layout.html.twig' %}
+
+{% block content_title 'Exception'|trans %}
+
+{% block body %}
+    <body>
+        <div class="alert alert-danger">
+            {{ exception.message }}
+        </div>
+    </body>
+{% endblock %}
