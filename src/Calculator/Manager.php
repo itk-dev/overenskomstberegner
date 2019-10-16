@@ -106,9 +106,12 @@ class Manager
         return $values;
     }
 
-    public function calculate(string $calculator, array $settings, array $arguments, $input)
+    public function calculate(string $calculator, array $settings, array $arguments, $input, array $options = [])
     {
         $calculator = $this->createCalculator($calculator, $settings);
+        if (isset($options['test_mode'])) {
+            $calculator->setTestMode($options['test_mode']);
+        }
 
         if (\is_string($input)) {
             $input = $this->readInput($input);

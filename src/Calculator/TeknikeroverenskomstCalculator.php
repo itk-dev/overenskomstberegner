@@ -240,8 +240,6 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
     private const COLUMN_TEST_REFERENCE_TIMER2 = 'test Timer 2';
     private const COLUMN_TEST_REFERENCE_ARBEJDSDAGE = 'test Arbejdsdage';
 
-    private $testMode = false;
-
     /**
      * Data grouped by employee number and sorted ascending by date.
      *
@@ -258,8 +256,6 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
      */
     protected function load(Spreadsheet $spreadsheet): void
     {
-        $this->testMode = 1 === (int) getenv('OVERENSKOMSTBEREGNER_TEST_MODE');
-
         // Get the first sheet.
         $sheet = $spreadsheet->getSheet(0);
 
@@ -400,6 +396,10 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
                     && $row[self::COLUMN_INPUT_DATE] < $endDate;
             }));
 
+            if ($this->testMode) {
+                $this->testCheckRows($rows);
+            }
+
             $row = $rows[0];
 
             // Compute non-zero sums.
@@ -424,12 +424,6 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
                 ] + $result;
 
                 $this->result[$employeeNumber] = $result;
-            }
-        }
-
-        if ($this->testMode) {
-            foreach ($this->result as $rows) {
-                $this->testCheckRows($rows);
             }
         }
     }
@@ -2061,7 +2055,7 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
         $this->rows[$this->rowsIndex][$key] = $value;
     }
 
-    private function testCheckRows(array &$rows)
+    private function testCheckRows(array $rows)
     {
         foreach ($rows as $index => $row) {
             foreach ([
@@ -2083,10 +2077,17 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
     /**
      * Calculate and set column in a row.
      */
-    private function calculateColumn(string $column, callable $calculate)
+    private function calculateColumn(string $column, callable $calculate, $type = 'float')
     {
         if (!$this->isSet($column)) {
-            $this->set($column, $calculate());
+            $value = $calculate();
+            if ('float' === $type) {
+                $value = (float)$value;
+            } elseif ('int' === $type) {
+                $value = (int)$value;
+            }
+
+            $this->set($column, $value);
         }
 
         return $this->get($column);

@@ -261,4 +261,12 @@ abstract class AbstractCalculator
             $spreadsheet->mergeCellsByColumnAndRow($columnIndex, $row, $columnIndex + $colSpan - 1, 1);
         }
     }
+
+    protected $testMode = false;
+
+    public function setTestMode(bool $testMode) {
+        $this->testMode = $testMode;
+
+        return $this;
+    }
 }
