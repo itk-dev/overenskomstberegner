@@ -158,12 +158,7 @@ class CalculateController extends AbstractController
 
         $calculator = $this->manager->createCalculator($calculation->getCalculator(), $calculation->getCalculatorSettings());
         foreach ($calculator->getArguments() as $name => $argument) {
-            $builder->add($name, $this->getFormType($argument['type']), [
-                'label' => $argument['name'] ?? $name,
-                'required' => $argument['required'],
-                'help' => $argument['description'] ?? null,
-                'data' => $this->getData($argument),
-            ]);
+            $builder->add($name, $this->getFormType($argument), $this->getFormTypeOptions($argument));
         }
 
         $builder
@@ -177,8 +172,29 @@ class CalculateController extends AbstractController
         return $builder->getForm();
     }
 
-    private function getFormType(string $type): string
+    private function getFormTypeOptions($argument)
     {
+        $type = $argument['type'];
+        $options = [
+            'label' => $argument['name'] ?? $name,
+            'required' => $argument['required'],
+            'help' => $argument['description'] ?? null,
+            'data' => $this->getData($argument),
+        ];
+
+        switch ($type) {
+            case 'date':
+                $options['widget'] = 'single_text';
+                break;
+        }
+
+        return $options;
+    }
+
+    private function getFormType(array $argument): string
+    {
+        $type = $argument['type'];
+
         switch ($type) {
             case 'bool':
                 return CheckboxType::class;
@@ -191,7 +207,8 @@ class CalculateController extends AbstractController
         return TextType::class;
     }
 
-    private function getData($argument) {
+    private function getData($argument)
+    {
         $data = $argument['default'] ?? null;
 
         switch ($argument['type']) {

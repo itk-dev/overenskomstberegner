@@ -10,6 +10,7 @@
 
 namespace App\Calculator;
 
+use App\Calculator\Exception\InvalidArgumentException;
 use DateTimeImmutable;
 use DateTimeInterface;
 use App\Annotation\Calculation;
@@ -369,6 +370,10 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
     {
         $this->result = [];
 
+        if ($this->endDate <= $this->startDate) {
+            throw new InvalidArgumentException('End date must be after start date');
+        }
+
         // Convert times to Excel floats.
         $this->overtidNatFra = $this->time2Excel($this->overtidNatFra);
         $this->overtidNatTil = $this->time2Excel($this->overtidNatTil);
@@ -386,7 +391,7 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
         $startDate = $this->dateTime2Excel($this->startDate);
         $endDate = $this->dateTime2Excel($this->endDate) + 1;
 
-        foreach ($this->data as $employeeNumber => $rows) {
+        foreach ($this->data as $employeeNumber => &$rows) {
             $result = $this->calculateEmployee($rows);
 
             // Keep only rows in the specified report date interval.
