@@ -2,3 +2,11 @@ twig:
     default_path: '%kernel.project_dir%/templates'
     debug: '%kernel.debug%'
     strict_variables: '%kernel.debug%'
+
+    globals:
+        site_name: '%site_name%'
+        # Used by itk-dev/user-management-bundle
+        site_description: '%site_description%'
+        site_logo_url: '%site_logo_url%'
+        site_url: '%site_url%'
+        site_logo_path: '%site_logo_path%'
