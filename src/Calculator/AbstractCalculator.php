@@ -201,6 +201,8 @@ abstract class AbstractCalculator
     }
 
     /**
+     * Get a DateTime from an Excel timestamp.
+     *
      * @param $value
      *
      * @return DateTimeImmutable|null
@@ -264,7 +266,8 @@ abstract class AbstractCalculator
 
     protected $testMode = false;
 
-    public function setTestMode(bool $testMode) {
+    public function setTestMode(bool $testMode)
+    {
         $this->testMode = $testMode;
 
         return $this;

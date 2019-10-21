@@ -20,6 +20,7 @@ use App\Annotation\Calculator\Argument;
 use App\Annotation\Calculator\Setting;
 use DateTime;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
 /**
  * Note on date calculations: All date (and time) calculations in this class
@@ -128,6 +129,13 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
     private $timeloen;
 
     /**
+     * @Setting(type="int", name="Standard", description="Antal arbejdstimer på en uge."),
+     *
+     * @var int
+     */
+    private $standard;
+
+    /**
      * @Setting(type="text", name="Normnedsættende events", description="Én per linje"),
      *
      * @var string
@@ -155,6 +163,9 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
      */
     private $endDate;
 
+    private const EMPTY_VALUE = '';
+    private const MISSING_VALUE = '(!!missing value!!)';
+
     private const COLUMN_INPUT_NAME = 'name';
     private const COLUMN_INPUT_EMPLOYEE_NUMBER = 'employee number';
     private const COLUMN_INPUT_CONTRACT = 'contract';
@@ -178,6 +189,12 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
     private const COLUMN_OUTPUT_TIMER2 = 'Timer2';
     private const COLUMN_OUTPUT_ARBEJDSDAGE = 'Arbejdsdage';
 
+    private const COLUMN_OUTPUT_ARBEJDSUGE = 'Arbejdsuge';
+    private const COLUMN_OUTPUT_NORM = 'Norm';
+    private const COLUMN_OUTPUT_MERTID = 'Mertid';
+    private const COLUMN_OUTPUT_AFSPADSERING = 'Afspadsering';
+    private const COLUMN_OUTPUT_DELTIDSFRADRAG = 'Deltidsfradrag';
+
     private const COLUMN_SUM_P_5571 = 'Σ P 5571';
     private const COLUMN_SUM_P_6625 = 'Σ P 6625';
     private const COLUMN_SUM_P_MILJOE = 'Σ P Miljø';
@@ -187,8 +204,8 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
     private const COLUMN_SUM_P_100_PCT = 'Σ P 100%';
     private const COLUMN_SUM_P_ANTAL = 'Σ P Antal';
     private const COLUMN_SUM_P_NORMAL = 'Σ P Normal';
-    private const COLUMN_SUM_P_TIMER2 = 'Σ Timer2';
-    private const COLUMN_SUM_P_ARBEJDSDAGE = 'Σ Arbejdsdage';
+    private const COLUMN_SUM_TIMER2 = 'Σ Timer2';
+    private const COLUMN_SUM_ARBEJDSDAGE = 'Σ Arbejdsdage';
 
     private const COLUMN_OUTPUT_EMPLOYEE_NUMBER = 'Medarbejdernummer';
     private const COLUMN_OUTPUT_LOENART = 'Lønart';
@@ -197,10 +214,11 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
     private const COLUMN_OUTPUT_IKRAFT_DATO = 'Ikraft dato (for lønmåned)';
 
     private const COLUMN_TEMP_OVERTID = 'overtid';
-    private const COLUMN_TEMP_IS_OVERTIME = 'is overtime';
+    private const COLUMN_TEMP_VARSEL = 'varsel';
+    private const COLUMN_TEMP_OT = 'is overtime';
     private const COLUMN_TEMP_TIMER = 'timer';
     private const COLUMN_TEMP_NAT = 'nat';
-    private const COLUMN_TEMP_IKKE_PLANLAGT7 = 'ikke planlagt 7';
+    private const COLUMN_TEMP_IKKE_PLANLAGT_7 = 'ikke planlagt 7';
     private const COLUMN_TEMP_13_TIMER = '13 timer';
     private const COLUMN_TEMP_11_TIMER = '11 timer';
     private const COLUMN_TEMP_5571 = '5571';
@@ -210,35 +228,36 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
     private const COLUMN_TEMP_100_PCT = '100 %';
     private const COLUMN_TEMP_DAGEN_FOER = 'dagen før';
     private const COLUMN_TEMP_ANTAL_HVILETIDSBRUD = 'antal hviletidsbrud';
+    private const COLUMN_TEMP_DELT = 'Delt';
 
-    private const COLUMN_TEST_REFERENCE_TIMER = 'test Timer';
-    private const COLUMN_TEST_REFERENCE_OVERTID = 'test Overtid';
-    private const COLUMN_TEST_REFERENCE_NAT = 'test Nat';
-    private const COLUMN_TEST_REFERENCE_IKKE_PLANLAGT_7 = 'test Ikke pl./7';
-    private const COLUMN_TEST_REFERENCE_50_PCT = 'test 50%';
-    private const COLUMN_TEST_REFERENCE_13_TIMER = 'test 13 timer';
-    private const COLUMN_TEST_REFERENCE_11_TIMER = 'test 11 timer';
-    private const COLUMN_TEST_REFERENCE_DAGEN_FOER = 'test Dagen før';
-    private const COLUMN_TEST_REFERENCE_100_PCT = 'test 100%';
-    private const COLUMN_TEST_REFERENCE_ANTAL_HVILETIDSBRUD = 'test Antal Hv.';
-    private const COLUMN_TEST_REFERENCE_5571 = 'test 5571';
-    private const COLUMN_TEST_REFERENCE_6625 = 'test 6625';
-    private const COLUMN_TEST_REFERENCE_MILJOE = 'test Miljø';
-    private const COLUMN_TEST_REFERENCE_VARSEL = 'test Varsel';
-    private const COLUMN_TEST_REFERENCE_DEL = 'test Delt';
-    private const COLUMN_TEST_REFERENCE_HELLIGDAG = 'test Helligdag';
-    private const COLUMN_TEST_REFERENCE_OT = 'test OT';
-    private const COLUMN_TEST_REFERENCE_P_5571 = 'test P 5571';
-    private const COLUMN_TEST_REFERENCE_P_6625 = 'test P 6625';
-    private const COLUMN_TEST_REFERENCE_P_MILJOE = 'test P Miljø';
-    private const COLUMN_TEST_REFERENCE_P_VARSEL = 'test P Varsel';
-    private const COLUMN_TEST_REFERENCE_P_DELT = 'test P Delt';
-    private const COLUMN_TEST_REFERENCE_P_50_PCT = 'test P 50%';
-    private const COLUMN_TEST_REFERENCE_P_100_PCT = 'test P 100%';
-    private const COLUMN_TEST_REFERENCE_P_ANTAL = 'test P Antal';
-    private const COLUMN_TEST_REFERENCE_P_NORMAL = 'test P Normal';
-    private const COLUMN_TEST_REFERENCE_TIMER2 = 'test Timer 2';
-    private const COLUMN_TEST_REFERENCE_ARBEJDSDAGE = 'test Arbejdsdage';
+    private const COLUMN_TEST_REFERENCE_TIMER = 'test reference Timer';
+    private const COLUMN_TEST_REFERENCE_OVERTID = 'test reference Overtid';
+    private const COLUMN_TEST_REFERENCE_NAT = 'test reference Nat';
+    private const COLUMN_TEST_REFERENCE_IKKE_PLANLAGT_7 = 'test reference Ikke pl./7';
+    private const COLUMN_TEST_REFERENCE_50_PCT = 'test reference 50%';
+    private const COLUMN_TEST_REFERENCE_13_TIMER = 'test reference 13 timer';
+    private const COLUMN_TEST_REFERENCE_11_TIMER = 'test reference 11 timer';
+    private const COLUMN_TEST_REFERENCE_DAGEN_FOER = 'test reference Dagen før';
+    private const COLUMN_TEST_REFERENCE_100_PCT = 'test reference 100%';
+    private const COLUMN_TEST_REFERENCE_ANTAL_HVILETIDSBRUD = 'test reference Antal Hv.';
+    private const COLUMN_TEST_REFERENCE_5571 = 'test reference 5571';
+    private const COLUMN_TEST_REFERENCE_6625 = 'test reference 6625';
+    private const COLUMN_TEST_REFERENCE_MILJOE = 'test reference Miljø';
+    private const COLUMN_TEST_REFERENCE_VARSEL = 'test reference Varsel';
+    private const COLUMN_TEST_REFERENCE_DELT = 'test reference Delt';
+    // private const COLUMN_TEST_REFERENCE_HELLIGDAG = 'test reference Helligdag';
+    private const COLUMN_TEST_REFERENCE_OT = 'test reference OT';
+    private const COLUMN_TEST_REFERENCE_P_5571 = 'test reference P 5571';
+    private const COLUMN_TEST_REFERENCE_P_6625 = 'test reference P 6625';
+    private const COLUMN_TEST_REFERENCE_P_MILJOE = 'test reference P Miljø';
+    private const COLUMN_TEST_REFERENCE_P_VARSEL = 'test reference P Varsel';
+    private const COLUMN_TEST_REFERENCE_P_DELT = 'test reference P Delt';
+    private const COLUMN_TEST_REFERENCE_P_50_PCT = 'test reference P 50%';
+    private const COLUMN_TEST_REFERENCE_P_100_PCT = 'test reference P 100%';
+    private const COLUMN_TEST_REFERENCE_P_ANTAL = 'test reference P Antal';
+    private const COLUMN_TEST_REFERENCE_P_NORMAL = 'test reference P Normal';
+    private const COLUMN_TEST_REFERENCE_TIMER2 = 'test reference Timer 2';
+    private const COLUMN_TEST_REFERENCE_ARBEJDSDAGE = 'test reference Arbejdsdage';
 
     /**
      * Data grouped by employee number and sorted ascending by date.
@@ -271,13 +290,15 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
         $dataRowEnd = $sheet->getHighestRow('E');
         $dataRange = $dataColumnStart.$dataRowStart.':'.$dataColumnEnd.$dataRowEnd;
 
-        $rows = $sheet->rangeToArray($dataRange, null, true, false);
+        $rows = $sheet->rangeToArray($dataRange, null, false, false);
 
         // DEBUG
         $rows = array_filter($rows, function ($index) {
             return true;
 
-            return 13 === $index;
+            return $index < 7;
+
+            return 2 === $index;
         }, ARRAY_FILTER_USE_KEY);
         // DEBUG
 
@@ -316,8 +337,8 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
                         self::COLUMN_TEST_REFERENCE_6625 => $row[self::EXCEL_COLUMN_V],
                         self::COLUMN_TEST_REFERENCE_MILJOE => $row[self::EXCEL_COLUMN_W],
                         self::COLUMN_TEST_REFERENCE_VARSEL => $row[self::EXCEL_COLUMN_X],
-                        self::COLUMN_TEST_REFERENCE_DEL => $row[self::EXCEL_COLUMN_Y],
-                        self::COLUMN_TEST_REFERENCE_HELLIGDAG => $row[self::EXCEL_COLUMN_Z],
+                        self::COLUMN_TEST_REFERENCE_DELT => $row[self::EXCEL_COLUMN_Y],
+                        // self::COLUMN_TEST_REFERENCE_HELLIGDAG => $row[self::EXCEL_COLUMN_Z],
                         self::COLUMN_TEST_REFERENCE_OT => $row[self::EXCEL_COLUMN_AA],
                         self::COLUMN_TEST_REFERENCE_P_5571 => $row[self::EXCEL_COLUMN_AB],
                         self::COLUMN_TEST_REFERENCE_P_6625 => $row[self::EXCEL_COLUMN_AC],
@@ -333,19 +354,6 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
                         // TEST
                     ];
                 }
-
-                // // Assume that actual end is on next day if less that actual start.
-                // if ($employeeRow[self::COLUMN_INPUT_ACTUAL_END] < $employeeRow[self::COLUMN_INPUT_ACTUAL_START]) {
-                //     $employeeRow[self::COLUMN_INPUT_ACTUAL_END] = $employeeRow[self::COLUMN_INPUT_ACTUAL_END]->add(new \DateInterval('P1D'));
-                // }
-
-                // Fill in missing dates.
-                // if (!isset($employeeRow[self::COLUMN_INPUT_ACTUAL_START])) {
-                //     $employeeRow[self::COLUMN_INPUT_ACTUAL_START] = $employeeRow[self::COLUMN_INPUT_PLANNED_START];
-                // }
-                // if (!isset($employeeRow[self::COLUMN_INPUT_ACTUAL_END])) {
-                //     $employeeRow[self::COLUMN_INPUT_ACTUAL_END] = $employeeRow[self::COLUMN_INPUT_PLANNED_END];
-                // }
 
                 $this->data[$employeeNumber][] = $employeeRow;
             }
@@ -369,6 +377,9 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
         if ($this->endDate <= $this->startDate) {
             throw new InvalidArgumentException('End date must be after start date');
         }
+        if ($this->standard <= 0) {
+            throw new InvalidArgumentException('Standard must be a positive integer');
+        }
 
         // Convert times to Excel floats.
         $this->overtidNatFra = $this->time2Excel($this->overtidNatFra);
@@ -383,47 +394,83 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
         $this->_11_timer = $this->time2Excel(new DateTime('@0 11:00'));
         $this->_13_timer = $this->time2Excel(new DateTime('@0 13:00'));
         $this->timeloen = $this->time2Excel($this->timeloen);
-
-        $startDate = $this->dateTime2Excel($this->startDate);
-        $endDate = $this->dateTime2Excel($this->endDate) + 1;
+        $this->startDate = $this->dateTime2Excel($this->startDate);
+        $this->endDate = $this->dateTime2Excel($this->endDate) + 1;
 
         foreach ($this->data as $employeeNumber => &$rows) {
             $result = $this->calculateEmployee($rows);
 
             // Keep only rows in the specified report date interval.
-            $result = array_values(array_filter($result, function (array $row) use ($startDate, $endDate) {
-                return $startDate <= $row[self::COLUMN_INPUT_DATE]
-                    && $row[self::COLUMN_INPUT_DATE] < $endDate;
+            $result = array_values(array_filter($result, function (array $row) {
+                return $this->startDate <= $row[self::COLUMN_INPUT_DATE]
+                    && $row[self::COLUMN_INPUT_DATE] <= $this->endDate;
             }));
 
             if ($this->testMode) {
                 $this->testCheckRows($rows);
             }
 
-            $row = $rows[0];
+            // Pivot
+            // Group by Employee name, number, contract, email
+            $employee = [];
+            foreach ($rows as $row) {
+                $key = implode('|||', [$row[self::COLUMN_INPUT_NAME], $row[self::COLUMN_INPUT_EMPLOYEE_NUMBER], $row[self::COLUMN_INPUT_CONTRACT], $row[self::COLUMN_INPUT_EMAIL]]);
+                if (!isset($employee[$key])) {
+                    $employee[$key] = [
+                        self::COLUMN_INPUT_NAME => $row[self::COLUMN_INPUT_NAME],
+                        self::COLUMN_INPUT_EMPLOYEE_NUMBER => $row[self::COLUMN_INPUT_EMPLOYEE_NUMBER],
+                        self::COLUMN_INPUT_CONTRACT => $row[self::COLUMN_INPUT_CONTRACT],
+                        self::COLUMN_INPUT_EMAIL => $row[self::COLUMN_INPUT_EMAIL],
+                        self::COLUMN_SUM_P_5571 => 0,
+                        self::COLUMN_SUM_P_6625 => 0,
+                        self::COLUMN_SUM_P_MILJOE => 0,
+                        self::COLUMN_SUM_P_VARSEL => 0,
+                        self::COLUMN_SUM_P_DELT => 0,
+                        self::COLUMN_SUM_P_50_PCT => 0,
+                        self::COLUMN_SUM_P_100_PCT => 0,
+                        self::COLUMN_SUM_P_ANTAL => 0,
+                        self::COLUMN_SUM_P_NORMAL => 0,
+                        self::COLUMN_SUM_TIMER2 => 0,
+                        self::COLUMN_SUM_ARBEJDSDAGE => 0,
+                    ];
+                }
+                foreach ([
+                    self::COLUMN_SUM_P_5571 => self::COLUMN_OUTPUT_P_5571,
+                    self::COLUMN_SUM_P_6625 => self::COLUMN_OUTPUT_P_6625,
+                    self::COLUMN_SUM_P_MILJOE => self::COLUMN_OUTPUT_P_MILJOE,
+                    self::COLUMN_SUM_P_VARSEL => self::COLUMN_OUTPUT_P_VARSEL,
+                    self::COLUMN_SUM_P_DELT => self::COLUMN_OUTPUT_P_DELT,
+                    self::COLUMN_SUM_P_50_PCT => self::COLUMN_OUTPUT_P_50_PCT,
+                    self::COLUMN_SUM_P_100_PCT => self::COLUMN_OUTPUT_P_100_PCT,
+                    self::COLUMN_SUM_P_ANTAL => self::COLUMN_OUTPUT_P_ANTAL,
+                    self::COLUMN_SUM_P_NORMAL => self::COLUMN_OUTPUT_P_NORMAL,
+                    self::COLUMN_SUM_TIMER2 => self::COLUMN_OUTPUT_TIMER2,
+                    self::COLUMN_SUM_ARBEJDSDAGE => self::COLUMN_OUTPUT_ARBEJDSDAGE,
+                ] as $sum => $column) {
+                    $employee[$key][$sum] += $row[$column];
+                }
+            }
 
-            // Compute non-zero sums.
-            $result = array_filter([
-                self::COLUMN_SUM_P_5571 => array_sum(array_column($result, self::COLUMN_OUTPUT_P_5571)),
-                self::COLUMN_SUM_P_6625 => array_sum(array_column($result, self::COLUMN_OUTPUT_P_6625)),
-                self::COLUMN_SUM_P_MILJOE => array_sum(array_column($result, self::COLUMN_OUTPUT_P_MILJOE)),
-                self::COLUMN_SUM_P_VARSEL => array_sum(array_column($result, self::COLUMN_OUTPUT_P_VARSEL)),
-                self::COLUMN_SUM_P_DELT => array_sum(array_column($result, self::COLUMN_OUTPUT_P_DELT)),
-                self::COLUMN_SUM_P_50_PCT => array_sum(array_column($result, self::COLUMN_OUTPUT_P_50_PCT)),
-                self::COLUMN_SUM_P_100_PCT => array_sum(array_column($result, self::COLUMN_OUTPUT_P_100_PCT)),
-                self::COLUMN_SUM_P_ANTAL => array_sum(array_column($result, self::COLUMN_OUTPUT_P_ANTAL)),
-                self::COLUMN_SUM_P_NORMAL => array_sum(array_column($result, self::COLUMN_OUTPUT_P_NORMAL)),
-                self::COLUMN_SUM_P_TIMER2 => array_sum(array_column($result, self::COLUMN_OUTPUT_TIMER2)),
-                self::COLUMN_SUM_P_ARBEJDSDAGE => array_sum(array_column($result, self::COLUMN_OUTPUT_ARBEJDSDAGE)),
-            ]);
+            foreach ($employee as &$row) {
+                $contract = $row[self::COLUMN_INPUT_CONTRACT];
+                $row[self::COLUMN_OUTPUT_ARBEJDSUGE] = $this->getUgenorm($contract);
+                $row[self::COLUMN_OUTPUT_NORM] = $row[self::COLUMN_OUTPUT_ARBEJDSUGE] / 5 * $this->getNumberOfWorkdays($this->getNormperiode($contract));
+                $row[self::COLUMN_OUTPUT_MERTID] = $row[self::COLUMN_SUM_P_NORMAL] - $row[self::COLUMN_OUTPUT_NORM];
+                $row[self::COLUMN_OUTPUT_DELTIDSFRADRAG] =
+                    $row[self::COLUMN_OUTPUT_ARBEJDSUGE] / $this->standard
+                    ? $row[self::COLUMN_OUTPUT_NORM] / $row[self::COLUMN_OUTPUT_ARBEJDSUGE] * ($this->standard - $row[self::COLUMN_OUTPUT_ARBEJDSUGE])
+                    : 0;
+                $row[self::COLUMN_OUTPUT_AFSPADSERING] = $row[self::COLUMN_SUM_P_50_PCT] * 1.5
+                    + $row[self::COLUMN_SUM_P_100_PCT] * 2
+                    + (
+                        $row[self::COLUMN_OUTPUT_MERTID] - $row[self::COLUMN_OUTPUT_DELTIDSFRADRAG] > 0
+                        ? ($row[self::COLUMN_OUTPUT_MERTID] - $row[self::COLUMN_OUTPUT_DELTIDSFRADRAG]) * 1.5
+                        : $row[self::COLUMN_OUTPUT_MERTID]
+                    );
+            }
 
-            if (!empty($result)) {
-                $result = [
-                    self::COLUMN_INPUT_NAME => $row[self::COLUMN_INPUT_NAME],
-                    self::COLUMN_INPUT_EMPLOYEE_NUMBER => $row[self::COLUMN_INPUT_EMPLOYEE_NUMBER],
-                ] + $result;
-
-                $this->result[$employeeNumber] = $result;
+            foreach ($employee as $row) {
+                $this->result[] = $row;
             }
         }
     }
@@ -455,14 +502,48 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
         $this->writeCell($sheet, 1, 1, $this->resultTitle, 5);
         ++$rowIndex;
 
-        foreach ($this->result as $employeeNumber => $row) {
-            $columnIndex = 1;
-            foreach ($row as $key => $value) {
-                $sheet->setCellValueByColumnAndRow($columnIndex, $rowIndex, $key);
-                $sheet->setCellValueByColumnAndRow($columnIndex + 1, $rowIndex, $value);
-                $columnIndex += 2;
+        $this->writeCells($sheet, 1, $rowIndex, [
+            self::COLUMN_OUTPUT_EMPLOYEE_NUMBER,
+            self::COLUMN_OUTPUT_LOENART,
+            self::COLUMN_OUTPUT_LOEBENR,
+            self::COLUMN_OUTPUT_ENHEDER_I_ALT,
+            self::COLUMN_OUTPUT_IKRAFT_DATO,
+        ]);
+        ++$rowIndex;
+
+        $columns = [
+            self::COLUMN_SUM_P_6625,
+            self::COLUMN_SUM_P_MILJOE,
+            self::COLUMN_SUM_P_VARSEL,
+            self::COLUMN_SUM_P_DELT,
+            self::COLUMN_SUM_P_50_PCT,
+            self::COLUMN_SUM_P_100_PCT,
+            self::COLUMN_SUM_P_ANTAL,
+            self::COLUMN_SUM_P_NORMAL,
+        ];
+
+        $iKraftDato = $this->dateTime2Excel(new DateTimeImmutable($this->getExcelDate($this->endDate - 1)->format(DateTimeInterface::ATOM).' last day of month'));
+
+        foreach ($this->result as $row) {
+            foreach ($columns as $column) {
+                if (isset($row[$column]) && $row[$column] > 0) {
+                    [$loenart, $loebenr] = $this->getLoenartAndLoebenr($column);
+                    $this->writeCells($sheet, 1, $rowIndex, [
+                        $row[self::COLUMN_INPUT_EMPLOYEE_NUMBER],
+                        $loenart,
+                        $loebenr,
+                        $row[$column],
+                        $iKraftDato,
+                    ]);
+                    $sheet->getStyleByColumnAndRow(4, $rowIndex)
+                        ->getNumberFormat()
+                        ->setFormatCode(NumberFormat::FORMAT_NUMBER_00);
+                    $sheet->getStyleByColumnAndRow(5, $rowIndex)
+                        ->getNumberFormat()
+                        ->setFormatCode(NumberFormat::FORMAT_DATE_DDMMYYYY);
+                    ++$rowIndex;
+                }
             }
-            ++$rowIndex;
         }
 
         return $result;
@@ -488,6 +569,46 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
         return $result;
     }
 
+    // private static $tfCodes = [
+    //     'Afspadsering til udbetaling' => '7061',
+    //     // @TODO: Duplicate '17-06 Tillæg' => '5571',
+    //     'Aften-/nattillæg 17-06' => '5571',
+    //     'Delt tjeneste' => '3791',
+    //     'Miljø' => '0424-1',
+    //     'Normaltimer' => '1401',
+    //     'Overarbejde 100%' => '0109-01',
+    //     'Overarbejde 50%' => '1041',
+    //     'Søn/-helligdagstillæg' => '6625',
+    //     'Varsel' => '7471',
+    //     'Weekendtillæg' => '6625',
+    // ];
+
+    private function getLoenartAndLoebenr($column)
+    {
+        switch ($column) {
+            case self::COLUMN_SUM_P_MILJOE:
+                return ['0424', '1'];
+            case self::COLUMN_SUM_P_NORMAL:
+                return ['0140', '1'];
+            case self::COLUMN_SUM_P_5571:
+                return ['0557', '1'];
+            case self::COLUMN_SUM_P_6625:
+                return ['0662', '5'];
+            case self::COLUMN_SUM_P_VARSEL:
+                return ['0747', '1'];
+            case self::COLUMN_SUM_P_DELT:
+                return ['0379', '1'];
+            case self::COLUMN_SUM_P_50_PCT:
+                return ['0104', '1'];
+            case self::COLUMN_SUM_P_100_PCT:
+                return ['0109', '1'];
+            case self::COLUMN_SUM_P_ANTAL:
+                return [null, null];
+        }
+
+        throw new \RuntimeException(sprintf('Unknown column: %s', $column));
+    }
+
     private function calculateEmployee(array &$rows)
     {
         $this->setRows($rows);
@@ -508,6 +629,8 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
             $this->calculateP100Pct();
             $this->calculatePAntal();
             $this->calculatePNormal();
+            $this->calculateTimer2();
+            $this->calculateArbejdsdage();
         }
 
         return $rows;
@@ -528,81 +651,53 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
      *     formula="",
      *     overenskomsttekst="",
      *     excelFormula="
-     =IF(
-     ISERROR(
-     VLOOKUP(
-     E3,
-     Helligdage!$B:$B,
-     1,
-     FALSE
-     )
-     ),
-     IF(
-     F3 = ""Vagt"",
-     IF(
-     WEEKDAY(
-     E3,
-     2
-     ) < 6,
-     IF(
-     I3 < E3 + Meta!$D$4,
-     IF(
-     J3 < E3 + Meta!$D$4,
-     J3 - I3,
-     IF(
-     J3 < E3 + Meta!$D$3,
-     E3 + Meta!$D$4 - I3,
-     E3 + Meta!$D$4 - I3 + J3 - E3 + Meta!$D$3
-     )
-     ),
-     IF(
-     J3 < E3 + Meta!$D$3,
-     0,
-     IF(
-     J3 < E3 + 1 + Meta!$D$4,
-     J3 - E3 - Meta!$D$3,
-     1 + Meta!$D$4 - I3
-     )
-     )
-     ),
-     IF(
-     WEEKDAY(
-     E3,
-     2
-     ) = 6,
-     IF(
-     I3 < E3 + Meta!$D$4,
-     IF(
-     J3 < E3 + Meta!$D$4,
-     J3 - I3,
-     0
-     ),
-     IF(
-     J3 < E3 + Meta!$D$2,
-     J3 - I3,
-     IF(
-     I3 < E3 + Meta!$D$2,
-     IF(
-     J3 < E3 + Meta!$D$3,
-     J3 - ( E3 + Meta!$D$2 ),
-     E3 + Meta!$D$3 - ( E3 + Meta!$D$2 )
-     ),
-     IF(
-     J3 < E3 + Meta!$D$3,
-     J3 - I3,
-     E3 + Meta!$D$3 - I3
-     )
-     )
-     )
-     ),
-     0
-     )
-     ),
-     0
-     ),
-     0
-     )
-     "
+     * =IF (ISERROR(VLOOKUP(E3, Helligdage!$B:$B, 1, FALSE)),
+     *     IF (F3 = ""Vagt"",
+     *           IF (WEEKDAY(E3, 2) < 6,
+     *                  IF (I3 < E3 + Meta!$D$4,
+     *                       IF (J3 < E3 + Meta!$D$4,
+     *                              J3 - I3,
+     *                              IF (J3 < E3 + Meta!$D$3,
+     *                                   E3 + Meta!$D$4 - I3,
+     *                                   E3 + Meta!$D$4 - I3 + J3 - E3 + Meta!$D$3
+     *                              )
+     *                       ),
+     *                       IF (J3 < E3 + Meta!$D$3,
+     *                              0,
+     *                              IF (J3 < E3 + 1 + Meta!$D$4,
+     *                                   J3 - E3 - Meta!$D$3,
+     *                                   1 + Meta!$D$4 - I3
+     *                              )
+     *                       )
+     *                  ),
+     *                  IF (WEEKDAY(E3, 2) = 6,
+     *                       IF (I3 < E3 + Meta!$D$4,
+     *                              IF (J3 < E3 + Meta!$D$4,
+     *                                   J3 - I3,
+     *                                   0
+     *                              ),
+     *                              IF (J3 < E3 + Meta!$D$2,
+     *                                   J3 - I3,
+     *                                   IF (I3 < E3 + Meta!$D$2,
+     *                                          IF (J3 < E3 + Meta!$D$3,
+     *                                               J3 - ( E3 + Meta!$D$2 ),
+     *                                               E3 + Meta!$D$3 - ( E3 + Meta!$D$2 )
+     *                                          ),
+     *                                          IF (J3 < E3 + Meta!$D$3,
+     *                                               J3 - I3,
+     *                                               E3 + Meta!$D$3 - I3
+     *                                          )
+     *                                   )
+     *                              )
+     *                       ),
+     *                       0
+     *                  )
+     *           ),
+     *           0
+     *     ),
+     *     0
+     * )
+     * "
      * )
      */
     private function calculate5571()
@@ -692,7 +787,12 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
     private function calculateP5571()
     {
         return $this->calculateColumn(self::COLUMN_OUTPUT_P_5571, function () {
-            return 24 * $this->calculate5571();
+            $_5571 = $this->calculate5571();
+            if (!$this->includeRow()) {
+                return self::EMPTY_VALUE;
+            }
+
+            return 24 * $_5571;
         });
     }
 
@@ -871,7 +971,12 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
     private function calculateP6625()
     {
         return $this->calculateColumn(self::COLUMN_OUTPUT_P_6625, function () {
-            return 24 * $this->calculate6625();
+            $_6625 = $this->calculate6625();
+            if (!$this->includeRow()) {
+                return self::EMPTY_VALUE;
+            }
+
+            return 24 * $_6625;
         });
     }
 
@@ -942,25 +1047,30 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
     private function calculatePMiljoe()
     {
         return $this->calculateColumn(self::COLUMN_OUTPUT_P_MILJOE, function () {
-            return 24 * $this->calculateMiljoe();
+            $mijoe = $this->calculateMiljoe();
+            if (!$this->includeRow()) {
+                return self::EMPTY_VALUE;
+            }
+
+            return 24 * $mijoe;
         });
     }
 
-//    /**
-//     * @Calculation(
-//     *     name="arbejdstimer",
-//     *     description="",
-//     *     formula="",
-//     *     overenskomsttekst="",
-//     *     excelFormula=""
-//     * )
-//     */
-//    private function calculateVarsel()
-//    {
-//        return $this->calculateColumn(self::COLUMN_TEMP_VARSEL, function () {
-//            return $this->calculateVarsel();
-//        });
-//    }
+    /**
+     * @Calculation(
+     *     name="arbejdstimer",
+     *     description="",
+     *     formula="",
+     *     overenskomsttekst="",
+     *     excelFormula="=HVIS($F3=""Løn: Varsel"";1;"""")"
+     * )
+     */
+    private function calculateVarsel()
+    {
+        return $this->calculateColumn(self::COLUMN_TEMP_VARSEL, function () {
+            return self::EVENT_LOEN_VARSEL === $this->get(self::COLUMN_INPUT_EVENT) ? 1 : self::EMPTY_VALUE;
+        }, 'mixed');
+    }
 
     /**
      * @Calculation(
@@ -974,8 +1084,26 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
     private function calculatePVarsel()
     {
         return $this->calculateColumn(self::COLUMN_OUTPUT_P_VARSEL, function () {
-            return self::EVENT_LOEN_VARSEL === $this->get(self::COLUMN_INPUT_EVENT) ? 1 : null;
+            return $this->calculateVarsel();
         });
+    }
+
+    /**
+     * @Calculation(
+     *     name="arbejdstimer",
+     *     description="",
+     *     formula="",
+     *     overenskomsttekst="",
+     *     excelFormula="=HVIS($F3=""Løn: Delt tjeneste"";1;"""")"
+     * )
+     *
+     * @return bool
+     */
+    private function calculateDelt()
+    {
+        return $this->calculateColumn(self::COLUMN_TEMP_DELT, function () {
+            return self::EVENT_LOEN_DELT_TJENESTE === $this->get(self::COLUMN_INPUT_EVENT) ? 1 : self::EMPTY_VALUE;
+        }, 'mixed');
     }
 
     /**
@@ -990,7 +1118,60 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
     private function calculatePDelt()
     {
         return $this->calculateColumn(self::COLUMN_OUTPUT_P_DELT, function () {
-            return self::EVENT_LOEN_DELT_TJENESTE === $this->get(self::COLUMN_INPUT_EVENT) ? 1 : null;
+            return $this->calculateDelt();
+        });
+    }
+
+    /**
+     * @Calculation(
+     *     name="",
+     *     description="",
+     *     formula="",
+     *     placeholders={},
+     *     overenskomsttekst="",
+     *     excelFormula="=
+     HVIS(OG(F3 = ""Vagt""; SUM(L3:N3) > 0);
+     HVIS(
+     S3 = 0;
+     SUM(
+     L3:N3
+     );
+     HVIS(
+     S3 >=
+     SUM(
+     L3:N3
+     );
+     0;
+     SUM(
+     L3:N3
+     ) - S3
+     )
+     );
+     0
+     )
+     ",
+     * )
+     */
+    private function calculate50Pct()
+    {
+        return $this->calculateColumn(self::COLUMN_TEMP_50_PCT, function () {
+            $event = $this->get(self::COLUMN_INPUT_EVENT);
+            $sum = $this->calculateOvertid() + $this->calculateNat() + $this->calculateIkkePlanlagt7();
+            $_100Pct = $this->calculate100Pct();
+
+            if (self::EVENT_VAGT === $event && $sum > 0) {
+                if (0 === $_100Pct) {
+                    return $sum;
+                } else {
+                    if ($_100Pct >= $sum) {
+                        return 0;
+                    } else {
+                        return $sum - $_100Pct;
+                    }
+                }
+            } else {
+                return 0;
+            }
         });
     }
 
@@ -1001,50 +1182,47 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
      *     formula="",
      *     overenskomsttekst="",
      *     excelFormula="
-=IF(
-    AND(
-        HLOOKUP(
-            VLOOKUP(
-                Data!C3,
-                Overenskomst,
-                3,
-                FALSE
-            ),
-            Periode,
-            2,
-            FALSE
-        ) <= Data!$E3,
-        Data!$E3 <=
-        HLOOKUP(
-            VLOOKUP(
-                Data!C3,
-                Overenskomst,
-                3,
-                FALSE
-            ),
-            Periode,
-            3,
-            FALSE
-        )
-    ),
-    O3 * 24,
-    """"
-)
-"
+     * =IF(
+     *     AND(
+     *         HLOOKUP(
+     *             VLOOKUP(
+     *                 Data!C3,
+     *                 Overenskomst,
+     *                 3,
+     *                 FALSE
+     *             ),
+     *             Periode,
+     *             2,
+     *             FALSE
+     *         ) <= Data!$E3,
+     *         Data!$E3 <=
+     *         HLOOKUP(
+     *             VLOOKUP(
+     *                 Data!C3,
+     *                 Overenskomst,
+     *                 3,
+     *                 FALSE
+     *             ),
+     *             Periode,
+     *             3,
+     *             FALSE
+     *         )
+     *     ),
+     *     O3 * 24,
+     *     """"
+     * )
+     * "
      * )
      */
     private function calculateP50Pct()
     {
         return $this->calculateColumn(self::COLUMN_OUTPUT_P_50_PCT, function () {
-            $contract = $this->get(self::COLUMN_INPUT_CONTRACT);
-            $date = $this->get(self::COLUMN_INPUT_DATE);
-            $normperiode = $this->getNormperiode($contract);
-
-            if ($normperiode[0] <= $date && $date <= $normperiode[1]) {
-                return $this->calculate50Pct() * 24;
-            } else {
-                return null;
+            $_50Pct = $this->calculate50Pct();
+            if (!$this->includeRow()) {
+                return self::EMPTY_VALUE;
             }
+
+            return 24 * $_50Pct;
         });
     }
 
@@ -1060,15 +1238,12 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
     private function calculateP100Pct()
     {
         return $this->calculateColumn(self::COLUMN_OUTPUT_P_100_PCT, function () {
-            $contract = $this->get(self::COLUMN_INPUT_CONTRACT);
-            $date = $this->get(self::COLUMN_INPUT_DATE);
-            $normperiode = $this->getNormperiode($contract);
-
-            if ($normperiode[0] <= $date && $date <= $normperiode[1]) {
-                return $this->calculate100Pct() * 24;
-            } else {
-                return null;
+            $_100Pct = $this->calculate100Pct();
+            if (!$this->includeRow()) {
+                return self::EMPTY_VALUE;
             }
+
+            return 24 * $_100Pct;
         });
     }
 
@@ -1084,8 +1259,12 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
     private function calculatePAntal()
     {
         return $this->calculateColumn(self::COLUMN_OUTPUT_P_ANTAL, function () {
-            // @TODO Are `24 * ` missing here?
-            return $this->calculateAntalHviletidsbrud();
+            $antal = $this->calculateAntalHviletidsbrud();
+            if (!$this->includeRow()) {
+                return self::EMPTY_VALUE;
+            }
+
+            return $antal;
         });
     }
 
@@ -1149,7 +1328,7 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
                 if ($timer > 0) {
                     return $timer * 24 - ($p50Pct + $p100Pct);
                 } else {
-                    return   0;
+                    return 0;
                 }
             } else {
                 return null;
@@ -1163,36 +1342,49 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
      *     description="",
      *     formula="",
      *     overenskomsttekst="",
-     *     excelFormula=""
+     *     excelFormula="=HVIS(OG(VOPSLAG(LOPSLAG(Data!C3;Overenskomst;3;FALSK);Periode;2;FALSK)<=Data!$E3;Data!$E3<=Slutdato);K3*24;"""")"
      * )
      */
     private function calculateTimer2()
     {
-        // @TODO: Is this actually used?
         return $this->calculateColumn(self::COLUMN_OUTPUT_TIMER2, function () {
-            throw new \RuntimeException(__METHOD__.' not implemented');
+            $date = $this->get(self::COLUMN_INPUT_DATE);
+            $contract = $this->get(self::COLUMN_INPUT_CONTRACT);
+            $normperiode = $this->getNormperiode($contract);
+
+            if ($normperiode[0] <= $date && $date <= $normperiode[1]) {
+                return $this->calculateTimer() * 24;
+            } else {
+                return self::EMPTY_VALUE;
+            }
         });
     }
 
     /**
+     * Er der blevet arbejdet?
+     *
      * @Calculation(
-     *     name="arbejdstimer",
+     *     name="arbejdsdage",
      *     description="",
      *     formula="",
      *     overenskomsttekst="",
      *     excelFormula=""
      * )
+     *
+     * @return int
      */
     private function calculateArbejdsdage()
     {
-        // @TODO: Is this actually used?
         return $this->calculateColumn(self::COLUMN_OUTPUT_ARBEJDSDAGE, function () {
-            $date = $this->get(self::COLUMN_INPUT_DATE);
-            $datePrev = $this->getPrev(self::COLUMN_INPUT_DATE);
+            if (!$this->includeRow()) {
+                return self::EMPTY_VALUE;
+            }
 
-            // @TODO: This does not look right!
-            return $date !== $datePrev ? 1 : 0;
-        });
+            $date = $this->get(self::COLUMN_INPUT_DATE);
+            $datePrev = $this->get(self::COLUMN_INPUT_DATE, -1);
+
+            return (null !== $datePrev && $date !== $datePrev) ? 1 : self::EMPTY_VALUE;
+        }, 'int');
     }
 
     // @TODO: Is this the complete list?
@@ -1204,7 +1396,6 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
     private const EVENT_FERIETIMER = 'Ferietimer';
     private const EVENT_SENIORDAG = 'Seniordag';
     private const EVENT_LOEN_DELT_TJENESTE = 'Løn: Delt tjeneste';
-    // @TODO Is this event actually used?
     private const EVENT_LOEN_VARSEL = 'Løn: Varsel';
 
     // @TODO: Is this the complete list?
@@ -1318,9 +1509,11 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
     private function getNormperiode($contract, $asExcelDates = true)
     {
         $calculate = function ($period) {
+            $startDate = $this->getExcelDate($this->startDate);
+
             switch ($period) {
                 case 1:
-                    $offset = $this->startDate->format(DateTimeInterface::ATOM);
+                    $offset = $startDate->format(DateTimeInterface::ATOM);
 
                     return [
                         new DateTimeImmutable($offset.' first day of month'),
@@ -1328,12 +1521,12 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
                     ];
                 case 3:
                     // Get quarter containing start date.
-                    $month = (int) $this->startDate->format('n');
+                    $month = (int) $startDate->format('n');
                     $startQuarterMonth = 3 * (int) floor(($month - 1) / 3) + 1;
 
                     return [
-                        new DateTimeImmutable($this->startDate->format(sprintf('Y-%02d-d\TH:i:sP', $startQuarterMonth)).' first day of month'),
-                        new DateTimeImmutable($this->startDate->format(sprintf('Y-%02d-d\TH:i:sP', $startQuarterMonth + 2)).' last day of month'),
+                        new DateTimeImmutable($startDate->format(sprintf('Y-%02d-d\TH:i:sP', $startQuarterMonth)).' first day of month'),
+                        new DateTimeImmutable($startDate->format(sprintf('Y-%02d-d\TH:i:sP', $startQuarterMonth + 2)).' last day of month'),
                     ];
 
                 default:
@@ -1341,8 +1534,7 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
             }
         };
 
-        // @TODO: What to do if contract is not set?
-        $norm = $this->kontraktnormer($contract ?? '');
+        $norm = $this->kontraktnormer($contract);
         $result = $calculate((int) $norm[2]);
 
         if ($asExcelDates) {
@@ -1350,6 +1542,25 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
         }
 
         return $result;
+    }
+
+    /**
+     * Get number of workdays in a period.
+     */
+    private function getNumberOfWorkdays(array $period)
+    {
+        $numberOfWorkdays = 0;
+
+        for ($d = $period[0]; $d <= $period[1]; ++$d) {
+            $weekday = $this->getWeekday($d);
+            if (self::WEEKDAY_SATURDAY === $weekday || self::WEEKDAY_SUNDAY === $weekday || $this->isHoliday($d)) {
+                continue;
+            }
+
+            ++$numberOfWorkdays;
+        }
+
+        return $numberOfWorkdays;
     }
 
     /**
@@ -1361,8 +1572,8 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
      *     formula="",
      *     placeholders={},
      *     overenskomsttekst="",
-     *     excelFormula="=
-     HVIS(
+     *     excelFormula="
+=HVIS(
      OG(
      E7 = E6;
      F6 = ""Løn: Overtid""
@@ -1396,12 +1607,12 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
      */
     private function calculateIsOvertime()
     {
-        return $this->calculateColumn(self::COLUMN_TEMP_IS_OVERTIME, function () {
+        return $this->calculateColumn(self::COLUMN_TEMP_OT, function () {
             return ($this->get(self::COLUMN_INPUT_DATE) === $this->get(self::COLUMN_INPUT_DATE, -2) && self::EVENT_LOEN_OVERTID === $this->get(self::COLUMN_INPUT_EVENT, -2))
                 || ($this->get(self::COLUMN_INPUT_DATE) === $this->get(self::COLUMN_INPUT_DATE, -1) && self::EVENT_LOEN_OVERTID === $this->get(self::COLUMN_INPUT_EVENT, -1))
                 || ($this->get(self::COLUMN_INPUT_DATE) === $this->get(self::COLUMN_INPUT_DATE, +1) && self::EVENT_LOEN_OVERTID === $this->get(self::COLUMN_INPUT_EVENT, +1))
-                || ($this->get(self::COLUMN_INPUT_DATE) === $this->get(self::COLUMN_INPUT_DATE, +2) && self::EVENT_LOEN_OVERTID === $this->get(self::COLUMN_INPUT_EVENT, +2));
-        });
+                || ($this->get(self::COLUMN_INPUT_DATE) === $this->get(self::COLUMN_INPUT_DATE, +2) && self::EVENT_LOEN_OVERTID === $this->get(self::COLUMN_INPUT_EVENT, +2)) ? 'OT' : self::EMPTY_VALUE;
+        }, 'mixed');
     }
 
     /**
@@ -1419,55 +1630,55 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
      For deltidsansatte er arbejde udover 8 timer dagligt overarbejde, dog ikke hvis tjenesten er planlagt til over 8 timer.
      Stk. 4
      Overarbejde søges godtgjort med frihed (afspadsering), der skal være af samme varighed, som det præsterede overarbejde med tillæg af 50% op rundet til antal hele timer",
-     *     excelFormula="=
-     HVIS(
-     C3 <> ""Timelønnede"";
-     HVIS(
-     OG(
-     J3 > H3;
-     N3 = 0;
-     AA3 = ""OT""
-     );
-     HVIS(
-     J3 < E3 + 1;
-     J3 - H3;
-     HVIS(
-     H3 >= E3 + 1;
-     0;
-     E3 + Meta!$A$2 - H3
-     )
-     );
-     0
-     );
-     HVIS(
-     OG(
-     J3 > H3;
-     K3 > Meta!$G$2
-     );
-     HVIS(
-     J3 < E3 + 1;
-     HVIS(
-     H3 - G3 < Meta!$G$2;
-     K3 - Meta!$G$2;
-     K3 - ( H3 - G3 )
-     );
-     HVIS(
-     J3 < E3 + 1 + Meta!$A$3;
-     HVIS(
-     H3 - G3 < Meta!$G$2;
-     J3 - Meta!$G$2 - M3;
-     K3 - ( H3 - G3 ) - M3
-     );
-     HVIS(
-     I3 < E3 + 21 / 24;
-     0;
-     J3 - ( E3 + 1 + Meta!$A$3 )
-     )
-     )
-     );
-     0
-     )
-     )
+     *     excelFormula="
+     * =IF(
+     *     C3 <> ""Timelønnede"",
+     *     IF(
+     *         AND(
+     *             J3 > H3,
+     *             N3 = 0,
+     *             AA3 = ""OT""
+     *         ),
+     *         IF(
+     *             J3 < E3 + 1,
+     *             J3 - H3,
+     *             IF(
+     *                 H3 >= E3 + 1,
+     *                 0,
+     *                 E3 + Meta!$A$2 - H3
+     *             )
+     *         ),
+     *         0
+     *     ),
+     *     IF(
+     *         AND(
+     *             J3 > H3,
+     *             K3 > Meta!$G$2
+     *         ),
+     *         IF(
+     *             J3 < E3 + 1,
+     *             IF(
+     *                 H3 - G3 < Meta!$G$2,
+     *                 K3 - Meta!$G$2,
+     *                 K3 - ( H3 - G3 )
+     *             ),
+     *             IF(
+     *                 J3 < E3 + 1 + Meta!$A$3,
+     *                 IF(
+     *                     H3 - G3 < Meta!$G$2,
+     *                     J3 - Meta!$G$2 - M3,
+     *                     K3 - ( H3 - G3 ) - M3
+     *                 ),
+     *                 IF(
+     *                     I3 < E3 + 21 / 24,
+     *                     0,
+     *                     J3 - ( E3 + 1 + Meta!$A$3 )
+     *                 )
+     *             )
+     *         ),
+     *         0
+     *     )
+     * )
      ",
      * )
      */
@@ -1496,34 +1707,34 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
                         } else {
                             return $date + $overtid_slut - $planned_end;
                         }
-
-                        return 0;
                     }
                 } else {
-                    if ($actual_end > $planned_end && $timer > $timeloen) {
-                        if ($actual_end < $date + 1) {
-                            if ($planned_end - $planned_start < $timeloen) {
-                                return $timer - $timeloen;
-                            } else {
-                                return $timer - $planned_end - $planned_start;
-                            }
+                    return 0;
+                }
+            } else {
+                if ($actual_end > $planned_end && $timer > $timeloen) {
+                    if ($actual_end < $date + 1) {
+                        if ($planned_end - $planned_start < $timeloen) {
+                            return $timer - $timeloen;
                         } else {
-                            if ($actual_end < $date + 1 + $overtid_start) {
-                                if ($planned_end - $planned_start < $overtid_slut) {
-                                    return $actual_end - $overtid_slut - $nat;
-                                } else {
-                                    return $timer - $planned_end - $planned_start - $nat;
-                                }
-                                if ($actual_start < $date + 21 / 24) {
-                                    return 0;
-                                } else {
-                                    return $actual_end - ($date + 1 + $overtid_start);
-                                }
+                            return $timer - $planned_end - $planned_start;
+                        }
+                    } else {
+                        if ($actual_end < $date + 1 + $overtid_start) {
+                            if ($planned_end - $planned_start < $overtid_slut) {
+                                return $actual_end - $overtid_slut - $nat;
+                            } else {
+                                return $timer - $planned_end - $planned_start - $nat;
+                            }
+                            if ($actual_start < $date + 21 / 24) {
+                                return 0;
+                            } else {
+                                return $actual_end - ($date + 1 + $overtid_start);
                             }
                         }
-
-                        return 0;
                     }
+                } else {
+                    return 0;
                 }
             }
         });
@@ -1539,12 +1750,9 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
      Arbejde mellem kl. 00.00 - 08.00 betragtes altid som overarbejde. [Se Nat-beregning]
      Stk. 4
      Overarbejde søges godtgjort med frihed (afspadsering), der skal være af samme varighed, som det præsterede overarbejde med tillæg af 50% op rundet til antal hele timer",
-     *     excelFormula="=
-     HVIS(
-     OG(
-     F7 = ""Vagt"";
-     N7 = 0
-     );
+     *     excelFormula="
+     =HVIS(
+     OG(F7 = ""Vagt""; N7 = 0);
      HVIS(
      I7 < E7 + Meta!$A$3;
      HVIS(
@@ -1575,23 +1783,23 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
             $actual_start = $this->get(self::COLUMN_INPUT_ACTUAL_START);
             $actual_end = $this->get(self::COLUMN_INPUT_ACTUAL_END);
             $date = $this->get(self::COLUMN_INPUT_DATE);
-            $overtid_start = $this->overtidNatFra;
+            $overtid_slut = $this->overtidNatTil;
 
             if (self::EVENT_VAGT === $event && 0 === $ikkePlanlagt7) {
-                if ($actual_start < $date + $overtid_start) {
-                    if ($actual_end < $date + $overtid_start) {
+                if ($actual_start < $date + $overtid_slut) {
+                    if ($actual_end < $date + $overtid_slut) {
                         return $actual_end - $actual_start;
                     } else {
-                        return $date + $overtid_start - $actual_start;
+                        return $date + $overtid_slut - $actual_start;
                     }
                 } else {
                     if ($actual_end < $date + 1) {
                         return 0;
                     } else {
-                        if ($actual_end < $date + 1 + $overtid_start) {
+                        if ($actual_end < $date + 1 + $overtid_slut) {
                             return $actual_end - ($date + 1);
                         } else {
-                            return $overtid_start;
+                            return $overtid_slut;
                         }
                     }
                 }
@@ -1631,71 +1839,12 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
      */
     private function calculateIkkePlanlagt7()
     {
-        return $this->calculateColumn(self::COLUMN_TEMP_IKKE_PLANLAGT7, function () {
+        return $this->calculateColumn(self::COLUMN_TEMP_IKKE_PLANLAGT_7, function () {
             return (($this->get(self::COLUMN_INPUT_DATE) === $this->get(self::COLUMN_INPUT_DATE, -2) && self::EVENT_LOEN_IKKE_PLANLAGT_7_DAG === $this->get(self::COLUMN_INPUT_EVENT, -2))
                     || ($this->get(self::COLUMN_INPUT_DATE) === $this->get(self::COLUMN_INPUT_DATE, -1) && self::EVENT_LOEN_IKKE_PLANLAGT_7_DAG === $this->get(self::COLUMN_INPUT_EVENT, -1))
                     || ($this->get(self::COLUMN_INPUT_DATE) === $this->get(self::COLUMN_INPUT_DATE, +1) && self::EVENT_LOEN_IKKE_PLANLAGT_7_DAG === $this->get(self::COLUMN_INPUT_EVENT, +1))
                     || ($this->get(self::COLUMN_INPUT_DATE) === $this->get(self::COLUMN_INPUT_DATE, +2) && self::EVENT_LOEN_IKKE_PLANLAGT_7_DAG === $this->get(self::COLUMN_INPUT_EVENT, +2)))
-                ? $this->get(self::COLUMN_INPUT_ACTUAL_END) - $this->get(self::COLUMN_INPUT_ACTUAL_END) : 0;
-        });
-    }
-
-    /**
-     * @Calculation(
-     *     name="",
-     *     description="",
-     *     formula="",
-     *     placeholders={},
-     *     overenskomsttekst="",
-     *     excelFormula="=
-     HVIS(
-     OG(
-     F3 = ""Vagt"";
-     SUM(
-     L3:N3
-     ) > 0
-     );
-     HVIS(
-     S3 = 0;
-     SUM(
-     L3:N3
-     );
-     HVIS(
-     S3 >=
-     SUM(
-     L3:N3
-     );
-     0;
-     SUM(
-     L3:N3
-     ) - S3
-     )
-     );
-     0
-     )
-     ",
-     * )
-     */
-    private function calculate50Pct()
-    {
-        return $this->calculateColumn(self::COLUMN_TEMP_50_PCT, function () {
-            $event = $this->get(self::COLUMN_INPUT_EVENT);
-            $sum = $this->calculateOvertid() + $this->calculateNat() + $this->calculateIkkePlanlagt7();
-            $_100Pct = $this->calculate100Pct();
-
-            if (self::EVENT_VAGT === $event && $sum > 0) {
-                if (0 === $_100Pct) {
-                    return $sum;
-                } else {
-                    if ($_100Pct >= $sum) {
-                        return 0;
-                    } else {
-                        return $sum - $_100Pct;
-                    }
-                }
-            } else {
-                return 0;
-            }
+                ? $this->get(self::COLUMN_INPUT_ACTUAL_END) - $this->get(self::COLUMN_INPUT_ACTUAL_START) : 0;
         });
     }
 
@@ -1726,7 +1875,7 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
             $timer = $this->calculateTimer(); // K
             $_13_timer = $this->_13_timer;
 
-            if (self::EVENT_VAGT === $event and 0 !== $timer and $timer > $_13_timer) {
+            if (self::EVENT_VAGT === $event and 0 !== $timer and $timer > $_13_timer + 0.01) {
                 return $timer - $_13_timer;
             } else {
                 return 0;
@@ -1787,7 +1936,7 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
      */
     private function calculate11Timer()
     {
-        $calculate = function () {
+        return $this->calculateColumn(self::COLUMN_TEMP_11_TIMER, function () {
             $event = $this->get(self::COLUMN_INPUT_EVENT);
             $date = $this->get(self::COLUMN_INPUT_DATE);
             $date_prev = $this->get(self::COLUMN_INPUT_DATE, -1);
@@ -1820,9 +1969,7 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
                     }
                 }
             }
-        };
-
-        $this->set(self::COLUMN_TEMP_11_TIMER, $calculate());
+        });
     }
 
     /**
@@ -1832,8 +1979,8 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
      *     formula="",
      *     placeholders={},
      *     overenskomsttekst="",
-     *     excelFormula="=
-     HVIS(
+     *     excelFormula="
+     =HVIS(
      OG(
      E3 - 1 =
      FORSKYDNING(
@@ -1876,10 +2023,10 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
                 if ($date - 1 === $date_prev_prev && $_13_timer_prev_prev > 0) {
                     return $_13_timer_prev_prev;
                 } else {
-                    return '';
+                    return 0; //self::EMPTY_VALUE;
                 }
             }
-        });
+        }, 'mixed');
     }
 
     /**
@@ -1940,6 +2087,10 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
                         if ($dagenFoer >= $_11Timer) {
                             return $_13Timer;
                         } else {
+                            header('content-type: text/plain');
+                            echo var_export([$_11Timer, $dagenFoer], true);
+                            die(__FILE__.':'.__LINE__.':'.__METHOD__);
+
                             return $_11Timer - $dagenFoer;
                         }
                     }
@@ -2008,6 +2159,13 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
         return false;
     }
 
+    private function includeRow()
+    {
+        $date = $this->get(self::COLUMN_INPUT_DATE);
+
+        return $this->startDate <= $date && $date <= $this->endDate;
+    }
+
     /**
      * Get a keyed value from row. Throw exception if key is not set.
      */
@@ -2055,25 +2213,6 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
         $this->rows[$this->rowsIndex][$key] = $value;
     }
 
-    private function testCheckRows(array $rows)
-    {
-        foreach ($rows as $index => $row) {
-            foreach ([
-                self::COLUMN_TEMP_TIMER => self::COLUMN_TEST_REFERENCE_TIMER,
-            ] as $calculated => $reference) {
-                if (!\array_key_exists($calculated, $row) || !\array_key_exists($reference, $row) || $row[$calculated] !== $row[$reference]) {
-                    header('content-type: text/plain');
-                    echo var_export([
-                        $calculated => \array_key_exists($calculated, $row) ? $row[$calculated] : '👻',
-                        $reference => \array_key_exists($reference, $row) ? $row[$reference] : '👻',
-                        'row['.$index.']' => $row,
-                    ], true);
-                    die(__FILE__.':'.__LINE__.':'.__METHOD__);
-                }
-            }
-        }
-    }
-
     /**
      * Calculate and set column in a row.
      */
@@ -2081,15 +2220,78 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
     {
         if (!$this->isSet($column)) {
             $value = $calculate();
-            if ('float' === $type) {
-                $value = (float)$value;
-            } elseif ('int' === $type) {
-                $value = (int)$value;
+            if (null !== $value) {
+                if ('float' === $type) {
+                    $value = (float) $value;
+                } elseif ('int' === $type) {
+                    $value = (int) $value;
+                }
             }
 
             $this->set($column, $value);
         }
 
         return $this->get($column);
+    }
+
+    private function testCheckRows(array $rows)
+    {
+        foreach ($rows as $index => $row) {
+            foreach ([
+                self::COLUMN_TEMP_TIMER => self::COLUMN_TEST_REFERENCE_TIMER,
+                self::COLUMN_TEMP_OVERTID => self::COLUMN_TEST_REFERENCE_OVERTID,
+                self::COLUMN_TEMP_NAT => self::COLUMN_TEST_REFERENCE_NAT,
+                self::COLUMN_TEMP_IKKE_PLANLAGT_7 => self::COLUMN_TEST_REFERENCE_IKKE_PLANLAGT_7,
+                self::COLUMN_TEMP_100_PCT => self::COLUMN_TEST_REFERENCE_100_PCT,
+                self::COLUMN_TEMP_50_PCT => self::COLUMN_TEST_REFERENCE_50_PCT,
+                self::COLUMN_TEMP_13_TIMER => self::COLUMN_TEST_REFERENCE_13_TIMER,
+                self::COLUMN_TEMP_11_TIMER => self::COLUMN_TEST_REFERENCE_11_TIMER,
+                self::COLUMN_TEMP_DAGEN_FOER => self::COLUMN_TEST_REFERENCE_DAGEN_FOER,
+                self::COLUMN_TEMP_ANTAL_HVILETIDSBRUD => self::COLUMN_TEST_REFERENCE_ANTAL_HVILETIDSBRUD,
+                self::COLUMN_TEMP_5571 => self::COLUMN_TEST_REFERENCE_5571,
+                self::COLUMN_TEMP_6625 => self::COLUMN_TEST_REFERENCE_6625,
+                self::COLUMN_TEMP_MILJOE => self::COLUMN_TEST_REFERENCE_MILJOE,
+                // self::COLUMN_TEMP_VARSEL => self::COLUMN_TEST_REFERENCE_VARSEL,
+                self::COLUMN_TEMP_DELT => self::COLUMN_TEST_REFERENCE_DELT,
+                // self::COLUMN_TEMP_HELLIGDAG => self::COLUMN_TEST_REFERENCE_HELLIGDAG,
+                self::COLUMN_TEMP_OT => self::COLUMN_TEST_REFERENCE_OT,
+                self::COLUMN_OUTPUT_P_5571 => self::COLUMN_TEST_REFERENCE_P_5571,
+                self::COLUMN_OUTPUT_P_6625 => self::COLUMN_TEST_REFERENCE_P_6625,
+                self::COLUMN_OUTPUT_P_MILJOE => self::COLUMN_TEST_REFERENCE_P_MILJOE,
+                self::COLUMN_OUTPUT_P_VARSEL => self::COLUMN_TEST_REFERENCE_P_VARSEL,
+                self::COLUMN_OUTPUT_P_DELT => self::COLUMN_TEST_REFERENCE_P_DELT,
+                self::COLUMN_OUTPUT_P_50_PCT => self::COLUMN_TEST_REFERENCE_P_50_PCT,
+                self::COLUMN_OUTPUT_P_100_PCT => self::COLUMN_TEST_REFERENCE_P_100_PCT,
+                self::COLUMN_OUTPUT_P_ANTAL => self::COLUMN_TEST_REFERENCE_P_ANTAL,
+                self::COLUMN_OUTPUT_P_NORMAL => self::COLUMN_TEST_REFERENCE_P_NORMAL,
+                self::COLUMN_OUTPUT_TIMER2 => self::COLUMN_TEST_REFERENCE_TIMER2,
+                self::COLUMN_OUTPUT_ARBEJDSDAGE => self::COLUMN_TEST_REFERENCE_ARBEJDSDAGE,
+            ] as $calculated => $reference) {
+                if (!\array_key_exists($calculated, $row) || !\array_key_exists($reference, $row) || !$this->testEquals($row[$calculated], $row[$reference])) {
+                    header('content-type: text/plain');
+                    echo var_export([
+                        $calculated => \array_key_exists($calculated, $row) ? $row[$calculated] : self::MISSING_VALUE,
+                        $reference => \array_key_exists($reference, $row) ? $row[$reference] : self::MISSING_VALUE,
+                        'row['.$index.']' => array_merge($row, [
+                            self::COLUMN_INPUT_DATE => $this->formatExcelDate($row[self::COLUMN_INPUT_DATE]),
+                        ]),
+                    ], true);
+                    die(__FILE__.':'.__LINE__.':'.__METHOD__);
+                }
+            }
+        }
+    }
+
+    private $delta = 0.1e-8;
+
+    private function testEquals($operand1, $operand2)
+    {
+        if (is_numeric($operand1) && is_numeric($operand2)) {
+            return abs($operand1 - $operand2) < $this->delta;
+        } else {
+            return $operand1 === $operand2;
+
+            return 0 === strcmp($operand1, $operand2);
+        }
     }
 }

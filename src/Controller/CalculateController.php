@@ -112,7 +112,9 @@ class CalculateController extends AbstractController
                     }
 
                     $contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-                    $filename = 'stuff.xlsx';
+                    $filename = transliterator_transliterate('Any-Latin; Latin-ASCII; [^A-Za-z0-9_] remove; Lower()', $calculation->getName())
+                        .'-'.(new \DateTime())->format('Y-m-d\TH.i.s')
+                        .'.xlsx';
                     $writer = new Xlsx($result);
                     $response = new StreamedResponse(
                         function () use ($writer) {
