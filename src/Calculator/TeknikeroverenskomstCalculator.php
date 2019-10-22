@@ -292,16 +292,6 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
 
         $rows = $sheet->rangeToArray($dataRange, null, false, false);
 
-        // DEBUG
-        $rows = array_filter($rows, function ($index) {
-            return true;
-
-            return $index < 7;
-
-            return 2 === $index;
-        }, ARRAY_FILTER_USE_KEY);
-        // DEBUG
-
         // Convert values to something useful and group by employee number.
         $this->data = [];
         foreach ($rows as $row) {
@@ -398,13 +388,7 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
         $this->endDate = $this->dateTime2Excel($this->endDate) + 1;
 
         foreach ($this->data as $employeeNumber => &$rows) {
-            $result = $this->calculateEmployee($rows);
-
-            // Keep only rows in the specified report date interval.
-            $result = array_values(array_filter($result, function (array $row) {
-                return $this->startDate <= $row[self::COLUMN_INPUT_DATE]
-                    && $row[self::COLUMN_INPUT_DATE] <= $this->endDate;
-            }));
+            $this->calculateEmployee($rows);
 
             if ($this->testMode) {
                 $this->testCheckRows($rows);
@@ -428,10 +412,10 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
                         self::COLUMN_SUM_P_DELT => 0,
                         self::COLUMN_SUM_P_50_PCT => 0,
                         self::COLUMN_SUM_P_100_PCT => 0,
-                        self::COLUMN_SUM_P_ANTAL => 0,
+                        // self::COLUMN_SUM_P_ANTAL => 0,
                         self::COLUMN_SUM_P_NORMAL => 0,
-                        self::COLUMN_SUM_TIMER2 => 0,
-                        self::COLUMN_SUM_ARBEJDSDAGE => 0,
+                        // self::COLUMN_SUM_TIMER2 => 0,
+                        // self::COLUMN_SUM_ARBEJDSDAGE => 0,
                     ];
                 }
                 foreach ([
@@ -442,12 +426,12 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
                     self::COLUMN_SUM_P_DELT => self::COLUMN_OUTPUT_P_DELT,
                     self::COLUMN_SUM_P_50_PCT => self::COLUMN_OUTPUT_P_50_PCT,
                     self::COLUMN_SUM_P_100_PCT => self::COLUMN_OUTPUT_P_100_PCT,
-                    self::COLUMN_SUM_P_ANTAL => self::COLUMN_OUTPUT_P_ANTAL,
+                    // self::COLUMN_SUM_P_ANTAL => self::COLUMN_OUTPUT_P_ANTAL,
                     self::COLUMN_SUM_P_NORMAL => self::COLUMN_OUTPUT_P_NORMAL,
-                    self::COLUMN_SUM_TIMER2 => self::COLUMN_OUTPUT_TIMER2,
-                    self::COLUMN_SUM_ARBEJDSDAGE => self::COLUMN_OUTPUT_ARBEJDSDAGE,
+                    // self::COLUMN_SUM_TIMER2 => self::COLUMN_OUTPUT_TIMER2,
+                    // self::COLUMN_SUM_ARBEJDSDAGE => self::COLUMN_OUTPUT_ARBEJDSDAGE,
                 ] as $sum => $column) {
-                    $employee[$key][$sum] += $row[$column];
+                    $employee[$key][$sum] += self::EMPTY_VALUE === $row[$column] ? 0.0 : $row[$column];
                 }
             }
 
@@ -518,7 +502,7 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
             self::COLUMN_SUM_P_DELT,
             self::COLUMN_SUM_P_50_PCT,
             self::COLUMN_SUM_P_100_PCT,
-            self::COLUMN_SUM_P_ANTAL,
+            // self::COLUMN_SUM_P_ANTAL,
             self::COLUMN_SUM_P_NORMAL,
         ];
 
@@ -602,8 +586,8 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
                 return ['0104', '1'];
             case self::COLUMN_SUM_P_100_PCT:
                 return ['0109', '1'];
-            case self::COLUMN_SUM_P_ANTAL:
-                return [null, null];
+            // case self::COLUMN_SUM_P_ANTAL:
+            //     return [null, null];
         }
 
         throw new \RuntimeException(sprintf('Unknown column: %s', $column));
@@ -634,14 +618,6 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
         }
 
         return $rows;
-
-        // return [
-        //     self::COLUMN_OUTPUT_EMPLOYEE_NUMBER => $employeeNumber,
-        //     self::COLUMN_OUTPUT_LOENART => null,
-        //     self::COLUMN_OUTPUT_LOEBENR => null,
-        //     self::COLUMN_OUTPUT_ENHEDER_I_ALT => null,
-        //     self::COLUMN_OUTPUT_IKRAFT_DATO => null,
-        // ];
     }
 
     /**
@@ -719,7 +695,7 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
                 if ($this->getWeekday($date) < self::WEEKDAY_SATURDAY) {
                     if ($actual_start < $date + $_5571_slut) {
                         if ($actual_end < $date + $_5571_slut) {
-                            $actual_end - $actual_start;
+                            return $actual_end - $actual_start;
                         } else {
                             if ($actual_end < $date + $_5571_midt) {
                                 return $date + $_5571_slut - $actual_start;
@@ -793,7 +769,7 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
             }
 
             return 24 * $_5571;
-        });
+        }, 'mixed');
     }
 
     /**
@@ -803,89 +779,65 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
      *     formula="",
      *     overenskomsttekst="",
      *     excelFormula="
-     =IF(
-     Z3 = ""X"",
-     IF(
-     OR(
-     J3 < E3 + 1,
-     WEEKDAY(
-     E3 + 1,
-     2
-     ) = 7,
-     OFFSET(
-     Z3,
-     1,
-     0
-     ) = ""X""
-     ),
-     J3 - I3,
-     IF(
-     WEEKDAY(
-     E3 + 1,
-     2
-     ) = 1,
-     IF(
-     J3 < E3 + 1 + Meta!$E$3,
-     J3 - I3,
-     E3 + 1 + Meta!$E$3
-     ),
-     0
-     )
-     ),
-     IF(
-     F3 = ""Vagt"",
-     IF(
-     OR(
-     WEEKDAY(
-     E3,
-     2
-     ) >= 6,
-     WEEKDAY(
-     E3,
-     2
-     ) = 1
-     ),
-     IF(
-     WEEKDAY(
-     E3,
-     2
-     ) = 6,
-     IF(
-     I3 < E3 + Meta!$E$2,
-     IF(
-     J3 <= E3 + Meta!$E$2,
-     0,
-     J3 - ( E3 + Meta!$E$2 )
-     ),
-     J3 - I3
-     ),
-     IF(
-     WEEKDAY(
-     E3,
-     2
-     ) = 7,
-     IF(
-     J3 < E3 + 1 + Meta!$E$3,
-     J3 - I3,
-     E3 + 1 + Meta!$E$3 - I3
-     ),
-     IF(
-     I3 > E3 + Meta!$E$3,
-     0,
-     IF(
-     J3 > E3 + Meta!$E$3,
-     E3 + Meta!$E$3 - I3,
-     J3 - I3
-     )
-     )
-     )
-     ),
-     0
-     ),
-     0
-     )
-     )
-     "
+     * =IF( Z3 = ""X"",
+     *   IF(OR(
+     *       J3 < E3 + 1,
+     *       WEEKDAY(E3 + 1, 2) = 7,
+     *       OFFSET(Z3, 1, 0) = ""X""
+     *     ),
+     *     J3 - I3,
+     *     IF(
+     *       WEEKDAY(E3 + 1, 2) = 1,
+     *       IF(
+     *         J3 < E3 + 1 + Meta!$E$3,
+     *         J3 - I3,
+     *         E3 + 1 + Meta!$E$3
+     *       ),
+     *       0
+     *     )
+     *   ),
+     *   IF(
+     *     F3 = ""Vagt"",
+     *     IF(
+     *       OR(
+     *         WEEKDAY(E3, 2) >= 6,
+     *         WEEKDAY(E3, 2) = 1
+     *       ),
+     *       IF(
+     *         WEEKDAY(E3, 2) = 6,
+     *         IF(
+     *           I3 < E3 + Meta!$E$2,
+     *           IF(
+     *             J3 <= E3 + Meta!$E$2,
+     *             0,
+     *             J3 - ( E3 + Meta!$E$2 )
+     *           ),
+     *           J3 - I3
+     *         ),
+     *         IF(
+     *           WEEKDAY(E3, 2) = 7,
+     *           IF(
+     *             J3 < E3 + 1 + Meta!$E$3,
+     *             J3 - I3,
+     *             E3 + 1 + Meta!$E$3 - I3
+     *           ),
+     *           IF(
+     *             I3 > E3 + Meta!$E$3,
+     *             0,
+     *             IF(
+     *               J3 > E3 + Meta!$E$3,
+     *               E3 + Meta!$E$3 - I3,
+     *               J3 - I3
+     *             )
+     *           )
+     *         )
+     *       ),
+     *       0
+     *     ),
+     *     0
+     *   )
+     * )
+     * "
      * )
      */
     private function calculate6625()
@@ -922,7 +874,7 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
                         if (self::WEEKDAY_SATURDAY === $this->getWeekday($date)) {
                             if ($actual_start < $date + $_6625_start) {
                                 if ($actual_end <= $date + $_6625_start) {
-                                    return                                    0;
+                                    return 0;
                                 } else {
                                     return $actual_end - ($date + $_6625_start);
                                 }
@@ -937,8 +889,7 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
                                     return $date + 1 + $_6625_slut - $actual_start;
                                 }
                             } else {
-                                if (
-                                    $actual_start > $date + $_6625_slut) {
+                                if ($actual_start > $date + $_6625_slut) {
                                     return 0;
                                 } else {
                                     if ($actual_end > $date + $_6625_slut) {
@@ -948,13 +899,13 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
                                     }
                                 }
                             }
+
+                            return 0;
                         }
-
-                        return 0;
                     }
-
-                    return 0;
                 }
+
+                return 0;
             }
         });
     }
@@ -1331,7 +1282,7 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
                     return 0;
                 }
             } else {
-                return null;
+                return self::EMPTY_VALUE;
             }
         });
     }
@@ -1384,7 +1335,7 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
             $datePrev = $this->get(self::COLUMN_INPUT_DATE, -1);
 
             return (null !== $datePrev && $date !== $datePrev) ? 1 : self::EMPTY_VALUE;
-        }, 'int');
+        });
     }
 
     // @TODO: Is this the complete list?
@@ -1679,7 +1630,7 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
      *         0
      *     )
      * )
-     ",
+     * "
      * )
      */
     private function calculateOvertid()
@@ -1694,6 +1645,10 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
             $timer = $this->calculateTimer();
             $date = $this->get(self::COLUMN_INPUT_DATE);
             $overtid_start = $this->overtidNatFra;
+            // HACK!
+            if (0 === $overtid_start) {
+                ++$overtid_start;
+            }
             $overtid_slut = $this->overtidNatTil;
             $nat = (int) $this->calculateNat();
 
@@ -1705,7 +1660,7 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
                         if ($planned_end >= $date + 1) {
                             return 0;
                         } else {
-                            return $date + $overtid_slut - $planned_end;
+                            return $date + $overtid_start - $planned_end;
                         }
                     }
                 } else {
@@ -2023,7 +1978,7 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
                 if ($date - 1 === $date_prev_prev && $_13_timer_prev_prev > 0) {
                     return $_13_timer_prev_prev;
                 } else {
-                    return 0; //self::EMPTY_VALUE;
+                    return self::EMPTY_VALUE;
                 }
             }
         }, 'mixed');
@@ -2084,14 +2039,11 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
                             return $_13Timer + $_11Timer;
                         }
                     } else {
-                        if ($dagenFoer >= $_11Timer) {
+                        // @TODO Apparently the empty (or any?) string is greater than or equal to a number!
+                        if (self::EMPTY_VALUE === $dagenFoer || $dagenFoer >= $_11Timer) {
                             return $_13Timer;
                         } else {
-                            header('content-type: text/plain');
-                            echo var_export([$_11Timer, $dagenFoer], true);
-                            die(__FILE__.':'.__LINE__.':'.__METHOD__);
-
-                            return $_11Timer - $dagenFoer;
+                            return $_11Timer - (float) $dagenFoer;
                         }
                     }
                 }
@@ -2163,7 +2115,7 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
     {
         $date = $this->get(self::COLUMN_INPUT_DATE);
 
-        return $this->startDate <= $date && $date <= $this->endDate;
+        return $this->startDate <= $date && $date < $this->endDate;
     }
 
     /**
@@ -2188,6 +2140,15 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
         } else {
             return $this->rows[$this->rowsIndex + $offset][$key] ?? null;
         }
+    }
+
+    private function currentRow()
+    {
+        if (!\array_key_exists($this->rowsIndex, $this->rows)) {
+            throw new \RuntimeException('No current row');
+        }
+
+        return $this->rows[$this->rowsIndex];
     }
 
     /**
@@ -2216,7 +2177,7 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
     /**
      * Calculate and set column in a row.
      */
-    private function calculateColumn(string $column, callable $calculate, $type = 'float')
+    private function calculateColumn(string $column, callable $calculate, $type = 'mixed')
     {
         if (!$this->isSet($column)) {
             $value = $calculate();
@@ -2274,6 +2235,8 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
                         $reference => \array_key_exists($reference, $row) ? $row[$reference] : self::MISSING_VALUE,
                         'row['.$index.']' => array_merge($row, [
                             self::COLUMN_INPUT_DATE => $this->formatExcelDate($row[self::COLUMN_INPUT_DATE]),
+                            self::COLUMN_INPUT_ACTUAL_START => $this->formatExcelTime($row[self::COLUMN_INPUT_ACTUAL_START]),
+                            self::COLUMN_INPUT_ACTUAL_END => $this->formatExcelTime($row[self::COLUMN_INPUT_ACTUAL_END]),
                         ]),
                     ], true);
                     die(__FILE__.':'.__LINE__.':'.__METHOD__);

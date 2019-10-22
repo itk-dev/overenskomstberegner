@@ -149,7 +149,7 @@ abstract class AbstractCalculator
             if ($setting['required']) {
                 Calculator::requireValue($name, $settings);
             }
-            Calculator::checkType($name, $setting['type'], $settings);
+            $value = Calculator::checkType($name, $setting['type'], $settings);
             if (!property_exists($this, $name)) {
                 throw new InvalidArgumentException(sprintf(
                     'Property "%s" does not exist on %s.',
@@ -160,7 +160,7 @@ abstract class AbstractCalculator
             $property = new ReflectionProperty($this, $name);
             $property->setAccessible(true);
             if (\array_key_exists($name, $settings)) {
-                $property->setValue($this, $settings[$name]);
+                $property->setValue($this, $value);
             } elseif (isset($setting['default'])) {
                 $property->setValue($this, $setting['default']);
             }
