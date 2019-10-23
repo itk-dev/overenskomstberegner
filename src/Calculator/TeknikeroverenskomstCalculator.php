@@ -2023,7 +2023,7 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
                 if ($date - 1 === $date_prev_prev && $_13_timer_prev_prev > 0) {
                     return $_13_timer_prev_prev;
                 } else {
-                    return 0; //self::EMPTY_VALUE;
+                    return 0;
                 }
             }
         }, 'mixed');
