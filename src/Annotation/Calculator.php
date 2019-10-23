@@ -61,11 +61,13 @@ class Calculator
                     }
                     break;
                 case 'date':
+                    $value = self::createDateTime($value);
                     if (!static::isDate($value)) {
                         throw new InvalidTypeException(sprintf('Must be a date: %s', $name));
                     }
                     break;
                 case 'time':
+                    $value = self::createDateTime($value);
                     if (!static::isDate($value)) {
                         throw new InvalidTypeException(sprintf('Must be a time: %s', $name));
                     }
@@ -198,6 +200,11 @@ class Calculator
             return (new DateTime('@0'))->setTime((int) $value['hour'], (int) $value['minute']);
         } elseif (isset($value['date'], $value['timezone'])) {
             return new DateTime($value['date'], new DateTimeZone($value['timezone']));
+        } elseif (\is_string($value)) {
+            try {
+                return new DateTime($value);
+            } catch (\Exception $exception) {
+            }
         }
 
         return null;
