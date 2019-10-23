@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+    <title>{{ title|default('preview') }}</title>
+    <style>
+        {# @see PhpOffice\PhpSpreadsheet\Writer\Html::buildCSS #}
+        .b,
+        .e {
+            text-align: center;
+        }
+
+        .f,
+        .n {
+            text-align: right;
+        }
+
+        .s {
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    {{ content|raw }}
+
+    <script>
+        document.querySelector('table').classList.add('table')
+
+        var numericClass = 'n';
+        var numericCell = document.querySelector('td[class~='+numericClass+']')
+        if (null !== numericCell) {
+            var row = numericCell.parentNode
+            var cells = row.querySelectorAll('*')
+            var classNames = Array.prototype.slice.call(cells).map(function (cell) {
+                return cell.classList.contains(numericClass) ? [numericClass] : [];
+            })
+            var header = row.previousElementSibling
+            cells = header.querySelectorAll('*')
+            for (var i = 0, cell; cell = cells[i]; i++) {
+                cell.classList.remove('s')
+                cell.classList.add.apply(cell.classList, classNames[i])
+            }
+        }
+    </script>
+</body>
+</html>

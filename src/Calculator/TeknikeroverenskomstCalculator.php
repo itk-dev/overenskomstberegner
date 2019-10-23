@@ -19,6 +19,7 @@ use App\Annotation\Calculator;
 use App\Annotation\Calculator\Argument;
 use App\Annotation\Calculator\Setting;
 use DateTime;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
@@ -590,19 +591,19 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
                 }
                 if (isset($row[$column]) && $row[$column] > 0) {
                     [$loenart, $loebenr] = $this->getLoenartAndLoebenr($column, $contract);
-                    $this->writeCells($sheet, 1, $rowIndex, [
-                        $row[self::COLUMN_INPUT_EMPLOYEE_NUMBER],
-                        $loenart,
-                        $loebenr,
-                        $row[$column],
-                        $iKraftDato,
-                    ]);
-                    $sheet->getStyleByColumnAndRow(4, $rowIndex)
-                        ->getNumberFormat()
-                        ->setFormatCode(NumberFormat::FORMAT_NUMBER_00);
-                    $sheet->getStyleByColumnAndRow(5, $rowIndex)
-                        ->getNumberFormat()
-                        ->setFormatCode(NumberFormat::FORMAT_DATE_DDMMYYYY);
+                    $sheet->getCellByColumnAndRow(1, $rowIndex)
+                        ->setValueExplicit($row[self::COLUMN_INPUT_EMPLOYEE_NUMBER], DataType::TYPE_STRING);
+                    $sheet->getCellByColumnAndRow(2, $rowIndex)
+                        ->setValue($loenart);
+                    $sheet->getCellByColumnAndRow(3, $rowIndex)
+                        ->setValue($loebenr);
+                    $sheet->getCellByColumnAndRow(4, $rowIndex)
+                        ->setValue($row[$column])
+                        ->getStyle()->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_NUMBER_00);
+                    $sheet->getCellByColumnAndRow(5, $rowIndex)
+                        ->setValue($iKraftDato)
+                        ->getStyle()->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_DATE_DDMMYYYY);
+
                     ++$rowIndex;
                 }
             }

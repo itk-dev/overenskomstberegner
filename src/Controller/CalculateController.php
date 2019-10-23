@@ -102,19 +102,20 @@ class CalculateController extends AbstractController
                         $input
                     );
 
-                    if ($preview) {
-                        $writer = new Html($result);
-                        ob_start();
-                        $writer->save('php://output');
-                        $html = ob_get_clean();
-                        echo $html;
-                        exit;
-                    }
-
-                    $contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
                     $filename = transliterator_transliterate('Any-Latin; Latin-ASCII; [^A-Za-z0-9_] remove; Lower()', $calculation->getName())
                         .'-'.(new \DateTime())->format('Y-m-d\TH.i.s')
                         .'.xlsx';
+
+                    if ($preview) {
+                        $writer = new Html($result);
+
+                        return $this->render('calculate/preview.html.twig', [
+                            'content' => $writer->generateSheetData(),
+                            'title' => $filename,
+                        ]);
+                    }
+
+                    $contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
                     $writer = new Xlsx($result);
                     $response = new StreamedResponse(
                         static function () use ($writer) {
