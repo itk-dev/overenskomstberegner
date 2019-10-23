@@ -117,7 +117,7 @@ class CalculateController extends AbstractController
                         .'.xlsx';
                     $writer = new Xlsx($result);
                     $response = new StreamedResponse(
-                        function () use ($writer) {
+                        static function () use ($writer) {
                             $writer->save('php://output');
                         }
                     );

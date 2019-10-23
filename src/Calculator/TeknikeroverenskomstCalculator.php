@@ -470,16 +470,6 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
         $sheet = $result->getActiveSheet();
         $rowIndex = 1;
 
-        // Sum af P 5571
-        // Sum af P 6625
-        // Sum af P Miljø
-        // Sum af P Varsel
-        // Sum af P Delt
-        // Sum af P 50%
-        // Sum af P 100%
-        // Sum af P Antal
-        // Sum af P Normal
-
         $result = new Spreadsheet();
         $sheet = $result->getActiveSheet();
         $rowIndex = 1;
@@ -496,22 +486,36 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
         ++$rowIndex;
 
         $columns = [
-            self::COLUMN_SUM_P_6625,
-            self::COLUMN_SUM_P_MILJOE,
-            self::COLUMN_SUM_P_VARSEL,
-            self::COLUMN_SUM_P_DELT,
+            self::COLUMN_SUM_P_NORMAL,
             self::COLUMN_SUM_P_50_PCT,
             self::COLUMN_SUM_P_100_PCT,
+            self::COLUMN_SUM_P_5571,
+            self::COLUMN_SUM_P_6625,
+            self::COLUMN_SUM_P_DELT,
+            self::COLUMN_SUM_P_VARSEL,
+            self::COLUMN_SUM_P_MILJOE,
+            self::COLUMN_OUTPUT_AFSPADSERING,
+
             // self::COLUMN_SUM_P_ANTAL,
-            self::COLUMN_SUM_P_NORMAL,
+            // self::COLUMN_SUM_TIMER2,
+            // self::COLUMN_SUM_ARBEJDSDAGE,
         ];
 
         $iKraftDato = $this->dateTime2Excel(new DateTimeImmutable($this->getExcelDate($this->endDate - 1)->format(DateTimeInterface::ATOM).' last day of month'));
 
+        usort($this->result, function ($a, $b) {
+            return strcmp($a[self::COLUMN_INPUT_EMPLOYEE_NUMBER], $b[self::COLUMN_INPUT_EMPLOYEE_NUMBER]);
+        });
+
         foreach ($this->result as $row) {
+            $contract = $row[self::COLUMN_INPUT_CONTRACT];
             foreach ($columns as $column) {
+                if (('Timelønnede' === $contract && \in_array($column, [self::COLUMN_OUTPUT_AFSPADSERING], true))
+                    || ('Timelønnede' !== $contract && \in_array($column, [self::COLUMN_SUM_P_NORMAL, self::COLUMN_SUM_P_MILJOE, self::COLUMN_SUM_P_50_PCT, self::COLUMN_SUM_P_100_PCT], true))) {
+                    continue;
+                }
                 if (isset($row[$column]) && $row[$column] > 0) {
-                    [$loenart, $loebenr] = $this->getLoenartAndLoebenr($column);
+                    [$loenart, $loebenr] = $this->getLoenartAndLoebenr($column, $contract);
                     $this->writeCells($sheet, 1, $rowIndex, [
                         $row[self::COLUMN_INPUT_EMPLOYEE_NUMBER],
                         $loenart,
@@ -531,43 +535,9 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
         }
 
         return $result;
-
-        $this->writeCells($sheet, 1, $rowIndex, [
-            self::COLUMN_OUTPUT_EMPLOYEE_NUMBER,
-            self::COLUMN_OUTPUT_LOENART,
-            self::COLUMN_OUTPUT_LOEBENR,
-            self::COLUMN_OUTPUT_ENHEDER_I_ALT,
-            self::COLUMN_OUTPUT_IKRAFT_DATO,
-        ]);
-        ++$rowIndex;
-
-        foreach ($this->result as $employeeNumber => $row) {
-            $columnIndex = 1;
-            foreach ($row as $cell) {
-                $sheet->setCellValueByColumnAndRow($columnIndex, $rowIndex, $cell);
-                ++$columnIndex;
-            }
-            ++$rowIndex;
-        }
-
-        return $result;
     }
 
-    // private static $tfCodes = [
-    //     'Afspadsering til udbetaling' => '7061',
-    //     // @TODO: Duplicate '17-06 Tillæg' => '5571',
-    //     'Aften-/nattillæg 17-06' => '5571',
-    //     'Delt tjeneste' => '3791',
-    //     'Miljø' => '0424-1',
-    //     'Normaltimer' => '1401',
-    //     'Overarbejde 100%' => '0109-01',
-    //     'Overarbejde 50%' => '1041',
-    //     'Søn/-helligdagstillæg' => '6625',
-    //     'Varsel' => '7471',
-    //     'Weekendtillæg' => '6625',
-    // ];
-
-    private function getLoenartAndLoebenr($column)
+    private function getLoenartAndLoebenr(string $column, string $contract)
     {
         switch ($column) {
             case self::COLUMN_SUM_P_MILJOE:
@@ -586,8 +556,8 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
                 return ['0104', '1'];
             case self::COLUMN_SUM_P_100_PCT:
                 return ['0109', '1'];
-            // case self::COLUMN_SUM_P_ANTAL:
-            //     return [null, null];
+            case self::COLUMN_OUTPUT_AFSPADSERING:
+                return ['0120', '1'];
         }
 
         throw new \RuntimeException(sprintf('Unknown column: %s', $column));
@@ -1463,6 +1433,11 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
             $startDate = $this->getExcelDate($this->startDate);
 
             switch ($period) {
+                case 0:
+                    return [
+                        new DateTimeImmutable('2001-01-01'),
+                        new DateTimeImmutable('2000-01-01'),
+                    ];
                 case 1:
                     $offset = $startDate->format(DateTimeInterface::ATOM);
 
@@ -2197,6 +2172,7 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
 
     private function testCheckRows(array $rows)
     {
+        return;
         foreach ($rows as $index => $row) {
             foreach ([
                 self::COLUMN_TEMP_TIMER => self::COLUMN_TEST_REFERENCE_TIMER,

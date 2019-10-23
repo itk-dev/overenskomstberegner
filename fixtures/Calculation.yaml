@@ -56,13 +56,15 @@ App\Entity\Calculation:
               timezone_type: 1
               date: '1970-01-01 08:00:00.000000'
 
+            standard: 37
+
             kontraktnormer: |-
-                Timelønnede,0,1
+                Timelønnede,0,0
                 Teknik 25 hours,25,1
                 Teknik 32 hours,32,1
                 Teknik 37 hours,37,1
                 Teknik 42 hours,42,1
-                Teknik 37 hours 3 måneder,37,3
+                Teknik 37 hours 3 mdr,37,3
 
             normnedsaettende: |-
                 Sygdom

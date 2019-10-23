@@ -1,0 +1,39 @@
+input: 'test-september-2019.xlsx'
+calculator: 'App\Calculator\TeknikeroverenskomstCalculator'
+settings:
+    resultTitle: 'test-september-2019.xlsx'
+    overtidNatFra: '@0 00:00'
+    overtidNatTil: '@0 08:00'
+    _5571_start: '@0 11:00'
+    _5571_midt: '@0 17:00'
+    _5571_slut: '@0 06:00'
+    _6625_start: '@0 17:00'
+    _6625_slut: '@0 06:00'
+    miljoe_start: '@0 17:00'
+    miljoe_slut: '@0 08:00'
+    timeloen: '@0 08:00'
+    standard: 37
+    normnedsaettende: |-
+        Sygdom
+        Ferietimer
+        Hjemmeboende barns sygedag
+        Afspadsering
+        6.Ferieuge
+        Deltids sygemeldt
+        Kursus
+        Omsorgsdag
+        Seniordag
+        Orlov
+        Tjenestefri med løn
+        EOF
+    kontraktnormer: |-
+        Timelønnede,0,1
+        Teknik 25 hours,25,1
+        Teknik 32 hours,32,1
+        Teknik 37 hours,37,1
+        Teknik 42 hours,42,1
+        Teknik 37 hours 3 mdr,37,3
+
+arguments:
+    startDate: '2019-09-01'
+    endDate: '2019-09-30'
