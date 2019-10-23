@@ -435,22 +435,96 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
                 }
             }
 
+            $rows = [];
             foreach ($employee as &$row) {
-                $contract = $row[self::COLUMN_INPUT_CONTRACT];
-                $row[self::COLUMN_OUTPUT_ARBEJDSUGE] = $this->getUgenorm($contract);
-                $row[self::COLUMN_OUTPUT_NORM] = $row[self::COLUMN_OUTPUT_ARBEJDSUGE] / 5 * $this->getNumberOfWorkdays($this->getNormperiode($contract));
-                $row[self::COLUMN_OUTPUT_MERTID] = $row[self::COLUMN_SUM_P_NORMAL] - $row[self::COLUMN_OUTPUT_NORM];
-                $row[self::COLUMN_OUTPUT_DELTIDSFRADRAG] =
-                    $row[self::COLUMN_OUTPUT_ARBEJDSUGE] / $this->standard
-                    ? $row[self::COLUMN_OUTPUT_NORM] / $row[self::COLUMN_OUTPUT_ARBEJDSUGE] * ($this->standard - $row[self::COLUMN_OUTPUT_ARBEJDSUGE])
-                    : 0;
-                $row[self::COLUMN_OUTPUT_AFSPADSERING] = $row[self::COLUMN_SUM_P_50_PCT] * 1.5
-                    + $row[self::COLUMN_SUM_P_100_PCT] * 2
-                    + (
-                        $row[self::COLUMN_OUTPUT_MERTID] - $row[self::COLUMN_OUTPUT_DELTIDSFRADRAG] > 0
-                        ? ($row[self::COLUMN_OUTPUT_MERTID] - $row[self::COLUMN_OUTPUT_DELTIDSFRADRAG]) * 1.5
-                        : $row[self::COLUMN_OUTPUT_MERTID]
-                    );
+                $rows[] = &$row;
+            }
+            $this->setRows($rows);
+
+            while ($this->nextRow()) {
+                $this->calculateColumn(
+                    self::COLUMN_OUTPUT_ARBEJDSUGE,
+                                       /*
+                                         =LOPSLAG(C3;Overenskomst;2;FALSK)
+                                       */
+                                       function () {
+                                           $contract = $this->get(self::COLUMN_INPUT_CONTRACT);
+
+                                           return $this->getUgenorm($contract);
+                                       }
+                );
+
+                $this->calculateColumn(
+                    self::COLUMN_OUTPUT_NORM,
+                                       /*
+                                         =Arbejdsuge/5*VOPSLAG(LOPSLAG(C3;Overenskomst;3;FALSK);Normdage;4;FALSK)
+                                       */
+                                       function () {
+                                           $arbejdsuge = $this->get(self::COLUMN_OUTPUT_ARBEJDSUGE);
+                                           $contract = $this->get(self::COLUMN_INPUT_CONTRACT);
+
+                                           return $arbejdsuge / 5 * $this->getNumberOfWorkdays($this->getNormperiode($contract));
+                                       }
+                );
+
+                $this->calculateColumn(
+                    self::COLUMN_OUTPUT_MERTID,
+                                       /*
+                                         =HVIS(Q3=0;0;M3-Q3)
+                                       */
+                                       function () {
+                                           $norm = $this->get(self::COLUMN_OUTPUT_NORM);
+                                           $normal = $this->get(self::COLUMN_SUM_P_NORMAL);
+
+                                           if (0 === $norm) {
+                                               return 0;
+                                           } else {
+                                               return $normal - $norm;
+                                           }
+                                       }
+                );
+
+                $this->calculateColumn(
+                    self::COLUMN_OUTPUT_DELTIDSFRADRAG,
+                                       /*
+                                         =HVIS(OG(Arbejdsuge<Standard;Arbejdsuge>0);Norm/Arbejdsuge*(Standard-Arbejdsuge);0)
+                                       */
+                                       function () {
+                                           $arbejdsuge = $this->get(self::COLUMN_OUTPUT_ARBEJDSUGE);
+                                           $standard = $this->standard;
+                                           $norm = $this->get(self::COLUMN_OUTPUT_NORM);
+
+                                           if ($arbejdsuge < $standard && $arbejdsuge > 0) {
+                                               return $norm / $arbejdsuge * ($standard - $arbejdsuge);
+                                           } else {
+                                               return 0;
+                                           }
+                                       }
+                );
+
+                $this->calculateColumn(
+                    self::COLUMN_OUTPUT_AFSPADSERING,
+                                       /*
+                                        =HVIS(Q3=0;
+                                        0;
+                                        J3*1,5+K3*2+HVIS(Mertid-Deltidsfradrag>0;(Mertid-Deltidsfradrag)*0,5;0)+Mertid)
+                                        */
+                                       function () {
+                                           $norm = $this->get(self::COLUMN_OUTPUT_NORM);
+
+                                           if (0 === $norm) {
+                                               return 0;
+                                           } else {
+                                               return $this->get(self::COLUMN_SUM_P_50_PCT) * 1.5
+                                                   + $this->get(self::COLUMN_SUM_P_100_PCT) * 2
+                                                   + (
+                                                       $this->get(self::COLUMN_OUTPUT_MERTID) - $this->get(self::COLUMN_OUTPUT_DELTIDSFRADRAG) > 0
+                                                       ? ($this->get(self::COLUMN_OUTPUT_MERTID) - $this->get(self::COLUMN_OUTPUT_DELTIDSFRADRAG)) * 1.5
+                                                       : $this->get(self::COLUMN_OUTPUT_MERTID)
+                                                   );
+                                           }
+                                       }
+                );
             }
 
             foreach ($employee as $row) {
@@ -2053,6 +2127,13 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
         });
     }
 
+    private function includeRow()
+    {
+        $date = $this->get(self::COLUMN_INPUT_DATE);
+
+        return $this->startDate <= $date && $date < $this->endDate;
+    }
+
     /**
      * @var array
      */
@@ -2086,26 +2167,13 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
         return false;
     }
 
-    private function includeRow()
-    {
-        $date = $this->get(self::COLUMN_INPUT_DATE);
-
-        return $this->startDate <= $date && $date < $this->endDate;
-    }
-
     /**
      * Get a keyed value from row. Throw exception if key is not set.
      */
     private function get(string $key, int $offset = 0)
     {
-        if (!isset($this->rows)) {
-            throw new \RuntimeException('No current rows');
-        }
-        if (!\array_key_exists($this->rowsIndex, $this->rows)) {
-            throw new \RuntimeException('No current row');
-        }
         if (0 === $offset) {
-            $row = $this->rows[$this->rowsIndex];
+            $row = $this->currentRow();
             // Require value in current row.
             if (!\array_key_exists($key, $row)) {
                 throw new \RuntimeException(sprintf('Invalid row key: %s', $key));
@@ -2131,14 +2199,7 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
      */
     private function isSet(string $key)
     {
-        if (null === $this->rows) {
-            throw new \RuntimeException('No current rows');
-        }
-        if (!\array_key_exists($this->rowsIndex, $this->rows)) {
-            throw new \RuntimeException('No current row');
-        }
-
-        return \array_key_exists($key, $this->rows[$this->rowsIndex]);
+        return \array_key_exists($key, $this->currentRow());
     }
 
     /**
