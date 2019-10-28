@@ -535,6 +535,14 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
     }
 
     /**
+     * ɛ used when checking if values are greater than 0, i.e. they must be
+     * greater than ɛ to be considered greater than 0.
+     *
+     * @var float
+     */
+    private $epsilon = (1 / 60) * (1 / 24); // One minute in Excel.
+
+    /**
      * Generate output: One line per TF per employee.
      *
      * @return Spreadsheet
@@ -589,7 +597,7 @@ class TeknikeroverenskomstCalculator extends AbstractCalculator
                     || ('Timelønnede' !== $contract && \in_array($column, [self::COLUMN_SUM_P_NORMAL, self::COLUMN_SUM_P_MILJOE, self::COLUMN_SUM_P_50_PCT, self::COLUMN_SUM_P_100_PCT], true))) {
                     continue;
                 }
-                if (isset($row[$column]) && $row[$column] > 0) {
+                if (isset($row[$column]) && $row[$column] > $this->epsilon) {
                     [$loenart, $loebenr] = $this->getLoenartAndLoebenr($column, $contract);
                     $sheet->getCellByColumnAndRow(1, $rowIndex)
                         ->setValueExplicit($row[self::COLUMN_INPUT_EMPLOYEE_NUMBER], DataType::TYPE_STRING);
